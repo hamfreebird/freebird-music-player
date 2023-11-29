@@ -5,7 +5,7 @@ import pygame.gfxdraw
 import pygame.draw
 
 __all__ = ["FreeButton", "FreeText", "SuperText", "NaSuperText", "FreeAllCircle",
-		   "FreeCircle", "SuperCircle", "CircleButton", "position_button", "FreeAARectangle"]
+		   "FreeCircle", "SuperCircle", "CircleButton", "position_button", "FreeAARectangle", "Point"]
 
 def _degree_to_radians(_degree):
 	return _degree * float(6.283185307179586 / 360)
@@ -17,6 +17,20 @@ def position_button(button, pos: tuple[int, int]) -> bool:
 		button.get_coordinates()[3][1] >= pos[1] >= button.get_coordinates()[0][1]):
 		return True
 	return False
+
+class Point():
+	
+	def __init__(self, screen, coordinates, r, color = (0, 0, 0)):
+		self.screen = screen
+		self.coordinates = coordinates
+		self.r = r
+		self.color = color
+		
+	def move(self, coordinates):
+		self.coordinates = coordinates
+		
+	def draw(self):
+		pygame.draw.circle(self.screen, self.color, self.coordinates, self.r)
 
 class FreeAARectangle():
 

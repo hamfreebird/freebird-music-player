@@ -5,12 +5,11 @@ import pygame
 from pygame.mixer import music
 from pygame.mixer import init as mixer_init  # 用于初始化音乐模块
 from pygame.colordict import THECOLORS       # pygame的颜色列表
-from sys import exit as sys_exit             # 控制退出
-from time import sleep as time_sleep         # 控制延迟
+from sys import exit as sys_exit
 from time import localtime as now_time
-from time import time as time_time
-try: import freepygame
-except NameError: import freepygamelib as freepygame
+# import freepygame
+import freepygamelib as freepygame
+# from mutagen.id3 import ID3, APIC
 global music_lrc_line_len
 
 def list_to_str(_list_name):  # 用于将歌词列表转化为字符串
@@ -19,10 +18,22 @@ def list_to_str(_list_name):  # 用于将歌词列表转化为字符串
 	list_str = list_str.replace("]", "")
 	return list_str
 
+# def embed_album_art(filename, image):
+# 	  audio = ID3(filename)
+# 	  with open(image, 'rb') as f:
+# 		  audio['APIC'] = APIC(
+# 			  encoding = 3,         # 3表示UTF-8编码
+# 			  mime = 'image/jpeg',  # 图片格式
+# 			  type = 3,             # 3表示专辑封面
+# 			  desc = u'Cover',      # 描述信息
+# 			  data = f.read()       # 读取图片数据
+# 		  )
+# 	  audio.save()
+
 # 导入设置文件
 setting_list = ["" for _ in range(0, 3)]
 setting_index = 0
-use_setting_film = False
+use_setting_film = True
 setting = open("setting.txt", "r")
 for set_num in setting:
 	setting_list[setting_index] = set_num
@@ -94,82 +105,85 @@ for unit in button:
 	unit.display_button = False
 
 # 获取音乐(歌词)文件夹中的文件列表
-if music_path_set == "": music_list = os.listdir(path = 'music'); music_path = "music\\"
-else: music_list = os.listdir(path = music_path_set); music_path = music_path_set + "\\"
-if music_lrc_path_set == "": music_lrc_list = os.listdir(path = 'music_lrc'); music_lrc_path = "music_lrc\\"
-else: music_lrc_list = os.listdir(music_lrc_path_set); music_lrc_path = music_lrc_path_set + "\\"
+if music_path_set == "":
+	music_list = os.listdir(path = 'music'); music_path = "music\\"
+else:
+	music_list = os.listdir(path = music_path_set); music_path = music_path_set + "\\"
+if music_lrc_path_set == "":
+	music_lrc_list = os.listdir(path = 'music_lrc'); music_lrc_path = "music_lrc\\"
+else:
+	music_lrc_list = os.listdir(music_lrc_path_set); music_lrc_path = music_lrc_path_set + "\\"
 if use_setting_film is True:
 	try:
-		for music_list_index in range(0, len(music_list)):
-			if music_list[music_list_index][:len(music_list[music_list_index]) - 4] != ".mp3" or \
-					music_list[music_list_index][:len(music_list[music_list_index]) - 4] != ".wav" or \
-					music_list[music_list_index][:len(music_list[music_list_index]) - 4] != ".ogg":
-				music_list.remove(music_list[music_list_index])
+		for music_list_index in range(0, len(music_list) - 1):
+			suffix = music_list[music_list_index][len(music_list[music_list_index]) - 4:]  # 后缀名
+			if suffix != ".mp3" and suffix != ".wav" and suffix != ".ogg":
+				music_list.pop(music_list_index)
 		for music_list_index in range(0, len(music_lrc_list)):
-			if music_lrc_list[music_list_index][:len(music_lrc_list[music_list_index]) - 4] != ".lrc":
-				music_lrc_list.remove(music_lrc_list[music_list_index])
+			if music_lrc_list[music_list_index][len(music_lrc_list[music_list_index]) - 4:] != ".lrc":
+				music_lrc_list.pop(music_list_index)
 	except IndexError:
-		print(music_lrc_list)
-music_lrc_is_load = False
-music_lrc_is_read = False
-music_lrc_line_len = 9999999
-lrc_line_index = 0
-music_lrc_text = """"""
-music_lrc_line = ["" for _ in range(0, 512)]
-music_lrc_draw = [False for _ in range(0, 512)]
-sea_music_list = False
-music_list_index = 0
+		print(music_list, music_lrc_list)
+		
+# 状态与参数
+music_lrc_is_load = False      # 歌词已加载
+music_lrc_is_read = False      # 歌词已读取
+music_lrc_line_len = 0         # 歌词行数初始化
+lrc_line_index = 0             # 歌词行数索引
+music_lrc_text = """"""        # 歌词文件标识符
+music_lrc_line = ["" for _ in range(0, 512)]      # 每一行歌词的内容
+music_lrc_draw = [False for _ in range(0, 512)]   # 每一行歌词绘制的状态
+sea_music_list = False         # 是否显示文件列表
+music_list_index = 0           # 文件列表索引，控制播放的音乐文件
 music_push_load = True
-music_is_load = False
-loop_music = True
+music_is_load = False          # 音乐文件是否载入
+loop_music = True              # 是否循环播放
 
 # 音乐播放的准备
 if music_list_index < len(music_list):
 	# 载入第一个音乐
 	music.load(music_path + music_list[music_list_index])
 	music.set_volume(1)
-	vol_num.set_msg(str(music.get_volume() * 100))
-	music_player = False
+	vol_num.set_msg(str(music.get_volume() * 100))  # 音量设置
+	music_player = False    # 不播放
 	music_is_load = True
 else:
 	music.set_volume(1)
 	vol_num.set_msg(str(music.get_volume() * 100))
 	music_player = False
-time_sleep(0.05)
-frame_number_list = [float(time_time()), 0.0]
 
 # 主循环
 while True:
+	# 设置状态栏
 	event_text.set_msg("现在时间：" + str(now_time().tm_year) + "年 " + str(now_time().tm_mon) + "月 " + str(now_time().tm_mday) +
 					   "日 " + str(now_time().tm_hour) + "时 " + str(now_time().tm_min) + "分 " + str(now_time().tm_sec) + "秒   " +
-					   "当前帧速率 " + str(1 / float(frame_number_list[1] - frame_number_list[0])))
-	frame_number_list[0] = float(time_time())
+					   "当前帧速率 " + str(int(clock.get_fps())) + "     freebird fly in the sky!")
 	# 事件和信号遍历
 	for event in pygame.event.get():
 		if event.type == MUSICOVER:
-			music_list_index += 1
+			music_list_index += 1   # 一曲播放完，更新文件列表索引
 			music_is_load = False
 			music_player = False
 		if event.type == pygame.QUIT:
 			music.stop()
-			pygame.quit()
-			sys_exit()
+			pygame.quit()           # 退出pygame引擎
+			sys_exit()              # 退出程序
 		elif event.type == pygame.WINDOWEXPOSED and music_player is False:
 			music.pause()
 		elif event.type == pygame.MOUSEWHEEL:
-			if event.dict.get("y") >= 0:
-				lrc_line_index -= 1
+			if event.dict.get("y") >= 0:     # 当用户使用鼠标滚轮时
+				lrc_line_index -= 1          # 歌词向上滚动
 			elif event.dict.get("y") <= 0:
-				lrc_line_index += 1
+				lrc_line_index += 1          # 歌词向下滚动
 		elif 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
 				5 < pygame.mouse.get_pos()[1] < 40 and event.type == pygame.MOUSEBUTTONDOWN:
-			if sea_music_list is False:
-				sea_music_list = True
+			if sea_music_list is False:      # 判断用户是否点击了歌曲文件名
+				sea_music_list = True        # True是显示歌词
 			else:
 				sea_music_list = False
-		elif event.type == pygame.KEYDOWN:
+		elif event.type == pygame.KEYDOWN:   # 键盘事件
 			if event.key == pygame.K_b:
-				pg_wind_music_index -= 1
+				pg_wind_music_index -= 1     # 切换背景
 			elif event.key == pygame.K_SPACE:
 				if button_go.display_button is False:  # 播放和暂停时的按钮样式
 					button_go.set_msg("->")
@@ -219,16 +233,16 @@ while True:
 		elif freepygame.position_button(button_adva, pygame.mouse.get_pos()) is True:
 			button_adva.set_msg_color(THECOLORS.get("grey95"))
 			button_adva.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				music_pos = music.get_pos() + 5
+			if event.type == pygame.MOUSEBUTTONDOWN:  # 按下快进键
 				music.pause()
+				music_pos = music.get_pos() + 5   # 将播放时间后移5秒
 				music.play(start = music_pos)
 		elif freepygame.position_button(button_back, pygame.mouse.get_pos()) is True:
 			button_back.set_msg_color(THECOLORS.get("grey95"))
 			button_back.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				music_pos = music.get_pos() - 5
+			if event.type == pygame.MOUSEBUTTONDOWN:  # 快退
 				music.pause()
+				music_pos = music.get_pos() - 5
 				music.play(start = music_pos)
 		elif freepygame.position_button(button_next, pygame.mouse.get_pos()) is True:
 			button_next.set_msg_color(THECOLORS.get("grey95"))
@@ -250,12 +264,12 @@ while True:
 			button_vol_add.set_msg_color(THECOLORS.get("grey95"))
 			button_vol_add.check_button = True
 			if event.type == pygame.MOUSEBUTTONDOWN:
-				music.set_volume(music.get_volume() + 0.05)
+				music.set_volume(music.get_volume() + 0.05)   # 音量加
 		elif freepygame.position_button(button_vol_min, pygame.mouse.get_pos()) is True:
 			button_vol_min.set_msg_color(THECOLORS.get("grey95"))
 			button_vol_min.check_button = True
 			if event.type == pygame.MOUSEBUTTONDOWN:
-				music.set_volume(music.get_volume() - 0.05)
+				music.set_volume(music.get_volume() - 0.05)   # 音量减
 		elif freepygame.position_button(button_loop, pygame.mouse.get_pos()) is True:
 			button_loop.set_msg_color(THECOLORS.get("grey95"))
 			button_loop.check_button = True
@@ -480,4 +494,3 @@ while True:
 	elif pg_wind_music_index == 3:
 		screen.blit(pg_wind_music[2], (0, 0))
 	clock.tick(frame_number)  # 控制帧数
-	frame_number_list[1] = float(time_time())
