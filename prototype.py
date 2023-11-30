@@ -2,7 +2,7 @@
 
 import os
 import pygame
-import freepygamelib as freepygame
+from freepygame import freepygamelib as freepygame
 from pygame.mixer import music
 from pygame.mixer import init as mixer_init  # 用于初始化音乐模块
 from pygame.gfxdraw import line as gfxdraw_line

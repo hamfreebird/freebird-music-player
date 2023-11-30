@@ -1,0 +1,29 @@
+
+time.struct_time(tm_year=2023, tm_mon=11, tm_mday=30, tm_hour=15, tm_min=48, tm_sec=38, tm_wday=3, tm_yday=334, tm_isdst=0)
+1701330518.96761   Open log file
+1701330519.31575   pygame : And the initialization
+1701330519.37076   control : And the initialization
+1701330519.37276   The music is ready
+1701330519.37776   Now load the lyrics:<_io.TextIOWrapper name='C:\\Users\\yichen\\Documents\\WIND\\freebMP\\music_lrc\\Running With The Wolves.lrc' mode='r+' encoding='utf-8'>
+1701330519.37876   ERROR : No lyrics:ÈÊ³½,ÄÏÓÐÇÇÄ¾ - Under the Sea (¾¨Âä).lrc
+1701330519.37976   ERROR : No lyrics:ÕÅÉØº­ - °¢µó.lrc
+1701330519.38776   Set the lyrics:¡¶¡·
+1701330532.60717   ERROR : No lyrics:Running With The Wolves.lrc
+1701330532.60818   ERROR : No lyrics:ÈÊ³½,ÄÏÓÐÇÇÄ¾ - Under the Sea (¾¨Âä).lrc
+1701330532.60818   Now load the lyrics:<_io.TextIOWrapper name='C:\\Users\\yichen\\Documents\\WIND\\freebMP\\music_lrc\\ÕÅÉØº­ - °¢µó.lrc' mode='r+' encoding='utf-8'>
+1701330532.61517   Set the lyrics:¡¶¡·
+1701330537.52110   Close the log file and close the program
+
+time.struct_time(tm_year=2023, tm_mon=11, tm_mday=30, tm_hour=15, tm_min=51, tm_sec=43, tm_wday=3, tm_yday=334, tm_isdst=0)
+1701330703.04618   Open log file
+
+time.struct_time(tm_year=2023, tm_mon=11, tm_mday=30, tm_hour=15, tm_min=52, tm_sec=4, tm_wday=3, tm_yday=334, tm_isdst=0)
+1701330724.51647   Open log file
+1701330724.85866   pygame : And the initialization
+1701330724.89167   control : And the initialization
+1701330724.89367   The music is ready
+1701330724.89767   Now load the lyrics:<_io.TextIOWrapper name='C:\\Users\\yichen\\Documents\\WIND\\freebMP\\music_lrc\\Running With The Wolves.lrc' mode='r+' encoding='utf-8'>
+1701330724.89967   ERROR : No lyrics:ÈÊ³½,ÄÏÓÐÇÇÄ¾ - Under the Sea (¾¨Âä).lrc
+1701330724.90067   ERROR : No lyrics:ÕÅÉØº­ - °¢µó.lrc
+1701330724.90867   Set the lyrics:¡¶¡·
+1701330734.60722   Close the log file and close the program

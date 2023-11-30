@@ -1,2 +1,0 @@
-cd C:\Users\yichen\Documents\WIND\freebMP
-pyinstaller --path "C:\Program Files\Python312\Lib\site-packages\pygame" -F -w --icon C:\Users\yichen\Documents\WIND\freebMP\assets\freebird_music80.ico C:\Users\yichen\Documents\WIND\freebMP\freebMPmain.py

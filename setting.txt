@@ -1,3 +1,4 @@
 display_size = (720,480)
-music_path = ""
-music_lrc_path = ""
+music_path = "C:\Users\yichen\Documents\WIND\freebMP\music"
+music_lrc_path = "C:\Users\yichen\Documents\WIND\freebMP\music_lrc"
+freelog = 1
