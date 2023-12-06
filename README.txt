@@ -6,3 +6,7 @@ A native music player that has some simple features and supports lyrics display
 
 欢迎报告BUG
 Welcome to report bugs
+
+
+v1.1.0 更新：
+	文件后缀名筛选，优化歌词处理

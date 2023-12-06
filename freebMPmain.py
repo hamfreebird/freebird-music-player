@@ -34,7 +34,7 @@ def list_to_str(_list_name):  # 用于将歌词列表转化为字符串
 text_encoding("utf-8")
 
 # 导入设置文件
-setting_list = ["" for _ in range(0, 4)]
+setting_list = ["" for _ in range(0, 3)]
 setting_index = 0
 use_setting_film = True
 setting = open("setting.txt", "r")
@@ -44,11 +44,11 @@ for set_num in setting:
 display_size_set = (720, 480)
 music_path_set = str(setting_list[1][14:len(setting_list[1]) - 2])
 music_lrc_path_set = str(setting_list[2][18:len(setting_list[2]) - 2])
-freelog_level = int(setting_list[3][10:])
+# freelog_level = int(setting_list[3][10:])
 setting.close()
 
 # 导入日志文件
-print("freelog_level = ", freelog_level)
+# print("freelog_level = ", freelog_level)
 freelog = open("freelog.txt", "a+")
 freelog.write("\n" + str(time.localtime()))
 freelog.write("\n" + str(format(time.time(), ".5f")) + "   Open log file\n")
@@ -86,7 +86,7 @@ time_num = freetext.SuperText(screen, (display_size[0] - 73, 120), "", color = T
 freebird_text = freetext.SuperText(screen, (display_size[0] - 90, display_size[1] - 30), "by freebird",
                                    text_font, color = THECOLORS.get("grey100"))
 pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Wishing well", text_font, color = THECOLORS.get("grey100"))
-version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.0.0", size = 15, color = THECOLORS.get("grey95"))
+version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.1.0", size = 15, color = THECOLORS.get("grey95"))
 music_name = freetext.SuperText(screen, (5, 42), "《》", size = 19, color = THECOLORS.get("grey100"))
 music_arties = freetext.SuperText(screen, (5, display_size[1] - 93), "音乐家：", size = 15, color = THECOLORS.get("grey95"))
 # button开头的都是按钮，需要在遍历信号时设置对应的功能
@@ -139,14 +139,16 @@ if use_setting_film is True:
 		print(music_list, music_lrc_list)
 		
 # 状态与参数
+music_lrc_max = 512
 music_lrc_is_load = False      # 歌词已加载
 music_lrc_is_read = False      # 歌词已读取
 music_lrc_line_len = 0         # 歌词行数初始化
 lrc_line_index = 0             # 歌词行数索引
 music_lrc_text = """"""        # 歌词文件标识符
-music_lrc_line = ["" for _ in range(0, 512)]      # 每一行歌词的内容
-music_lrc_draw = [False for _ in range(0, 512)]   # 每一行歌词绘制的状态
+music_lrc_line = ["" for _ in range(0, music_lrc_max)]      # 每一行歌词的内容
+music_lrc_draw = [False for _ in range(0, music_lrc_max)]   # 每一行歌词绘制的状态
 sea_music_list = False         # 是否显示文件列表
+sea_music_film = False         # 是否显示歌曲信息
 music_list_index = 0           # 文件列表索引，控制播放的音乐文件
 music_push_load = True
 music_is_load = False          # 音乐文件是否载入
@@ -369,14 +371,14 @@ while True:
 				except SystemError:
 					music_lrc_is_load = False
 					lyrics[int(lyrics_len / 2)].set_msg("找到歌词文件但载入失败！")
-					music_lrc_line = ["" for _ in range(0, 512)]
+					music_lrc_line = ["" for _ in range(0, music_lrc_max)]
 					freelog.write(str(format(time.time(), ".5f")) + "   ERROR : Find the lyrics but can't load it:" +
 					              str(music_lrc_path) + str(lrc_unit) + "\n")
 			else:
 				lyrics[int(lyrics_len / 2)].set_msg("未找到歌词！")
-				music_lrc_line = ["" for _ in range(0, 512)]
+				music_lrc_line = ["" for _ in range(0, music_lrc_max)]
 				freelog.write(str(format(time.time(), ".5f")) + "   ERROR : No lyrics:" + str(lrc_unit) + "\n")
-		music_lrc_draw = [False for _ in range(0, 512)]
+		music_lrc_draw = [False for _ in range(0, music_lrc_max)]
 		lrc_line_index = 0
 	if music_lrc_is_load is False:
 		try:
@@ -390,7 +392,7 @@ while True:
 		              music_name.get_attribute().get("msg") + "\n")
 	if music_lrc_is_load is True and music_lrc_is_read is False:  # 读取歌词
 		for unit in lyrics: unit.set_msg("")
-		music_lrc_line = ["" for _ in range(0, 512)]
+		music_lrc_line = ["" for _ in range(0, music_lrc_max)]   # 用于存放歌词的每一行
 		music_lrc_line_len = 0
 		for each_line in music_lrc_text:
 			music_lrc_draw[music_lrc_line_len] = False
@@ -472,6 +474,9 @@ while True:
 						lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
 			except IndexError:
 				lrc_line_index -= 1
+	# 显示歌曲信息
+	elif sea_music_film is True and move_text is True:
+		pass
 
 	each_line_index = lyrics_len - 1
 	music_lrc_line_index = 1
