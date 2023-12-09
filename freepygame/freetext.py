@@ -36,6 +36,10 @@ class FreeText():
 
 	def set_color(self, color):
 		"""改变文本颜色"""
+		try:
+			self._font = pygame.font.SysFont(self.font, self.size)
+		except TypeError:
+			self._font = self.font
 		self.img_text = self._font.render(self.msg, True, color)
 
 	def set_fout(self, font):
@@ -73,12 +77,17 @@ class FreeText():
 class SuperText(FreeText):
 	"""超级文本类，继承自FreeText"""
 
-	def __init__(self, screen, coordinates, msg, font = 'SimHei', size = 24, color = (0, 0, 0)):
+	def __init__(self, screen, coordinates, msg, font = 'SimHei', size = 24, color = (0, 0, 0), dsm = 1):
 		"""初始化文本:
 		screen -> 设置的窗口, coordinates[x,y] -> 文本左上角坐标, msg -> 文本, font -> 字体,
 		size -> 文本大小, color(R,G,B) -> 文本颜色"""
 		super().__init__(screen, coordinates, msg, font, size, color)
 		self.msg_len_next = -1
+		self.dsm = dsm
+		
+	def draw(self):
+		"""绘制文本"""
+		self.screen.blit(self.img_text, (self.x * self.dsm, self.y * self.dsm))
 
 	def __del__(self):
 		"""析构方法，返回文本左上角坐标"""

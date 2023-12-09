@@ -19,16 +19,19 @@ class FreeButton():
 	display_button = True
 
 	def __init__(self, screen, coordinates, button_size, msg, font = 'SimHei', size = 24, border_width = 1, draw_border = True, draw_line = False, msg_tran = False,
-				 line_width = 1, button_color = (0, 0, 0), text_color = (255, 255, 255), border_color = (0, 0, 0), line_color = (255, 255, 255)):
+				 line_width = 1, button_color = (0, 0, 0), text_color = (255, 255, 255), border_color = (0, 0, 0), line_color = (255, 255, 255), dsm = 1):
 		"""初始化按钮:
 		screen -> 设置的窗口, coordinates[x,y] -> 按钮左上角坐标, button_size[x,y] -> 按钮大小, msg -> 文本, font -> 字体, size -> 文本大小, msg_tran -> 透明
 		border_width -> 边框宽度, draw_border -> 显示边框, draw_line -> 显示线, line_width -> 线宽度, button_color(R,G,B) -> 按钮背景色,
-		text_color(R,G,B) -> 文本颜色(前景色), border_color(R,G,B) -> 边框颜色, line_color(R,G,B) -> 线颜色"""
+		text_color(R,G,B) -> 文本颜色(前景色), border_color(R,G,B) -> 边框颜色, line_color(R,G,B) -> 线颜色, dsm -> 放大倍数"""
 		self.msg = msg
+		self.dsm = dsm
 		self.screen = screen
-		self.width = button_size[0]
-		self.height = button_size[1]
+		self.width = button_size[0] * self.dsm
+		self.height = button_size[1] * self.dsm
 		self.coordinates = coordinates
+		self.coordinates[0] *= self.dsm
+		self.coordinates[1] *= self.dsm
 		self.button_color = button_color
 		self.text_color = text_color
 		self.draw_line = draw_line
@@ -37,9 +40,9 @@ class FreeButton():
 		self.line = [line_width, line_color]
 		self.msg_tran = msg_tran
 		self.font = pygame.font.SysFont(font, size)
-		self.rect = pygame.Rect(0, 0, self.width, self.height)
-		self.rect.centerx = self.coordinates[0] + self.width / 2
-		self.rect.centery = self.coordinates[1] + self.height / 2
+		self.rect = pygame.Rect(0, 0, self.width * self.dsm, self.height * self.dsm)
+		self.rect.centerx = (self.coordinates[0] + self.width / 2)
+		self.rect.centery = (self.coordinates[1] + self.height / 2)
 		self.msg_img = self.font.render(self.msg, True, self.text_color, self.button_color)
 		if self.msg_tran is True: self.msg_img.set_colorkey(self.button_color)
 		self.msg_img_rect = self.msg_img.get_rect()
@@ -132,17 +135,18 @@ class CircleButton(FreeCircle):
 	display_button = True
 
 	def __init__(self, screen, coordinates, radius, msg, font = 'SimHei', size = 24, width = 0, rect = (0, 0), angle = (0, 360), aa = True, draw_border = False,
-				 border_width = 1, color = (0, 0, 0), border_color = (0, 0, 0), msg_color = (255, 255, 255), button_color = (0, 0, 0), msg_tran = False):
+				 border_width = 1, color = (0, 0, 0), border_color = (0, 0, 0), msg_color = (255, 255, 255), button_color = (0, 0, 0), msg_tran = False, dsm = 1):
 		super().__init__(screen, coordinates, radius, width, rect, angle, aa,
 				 draw_border, border_width, color, border_color)
 		self.msg = msg
+		self.dsm = dsm
 		self._font = pygame.font.SysFont(font, size)
 		self.button_color = button_color
 		self.size = size
 		self.msg_color = msg_color
-		self.msgrect = pygame.Rect(0, 0, rect[0], rect[1])
-		self.msgrect.centerx = self.coordinates[0]
-		self.msgrect.centery = self.coordinates[1]
+		self.msgrect = pygame.Rect(0, 0, rect[0] * self.dsm, rect[1] * self.dsm)
+		self.msgrect.centerx = self.coordinates[0] * self.dsm
+		self.msgrect.centery = self.coordinates[1] * self.dsm
 		self.msg_tran = msg_tran
 		self.msg_img = self._font.render(self.msg, True, self.msg_color, self.button_color).convert()
 		if self.msg_tran is True: self.msg_img.set_colorkey(self.button_color)
