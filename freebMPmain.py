@@ -69,7 +69,7 @@ time_num = freetext.SuperText(screen, (display_size[0] - 73, 120), "", color = T
 freebird_text = freetext.SuperText(screen, (display_size[0] - 95, display_size[1] - 30), "by freebird",
                                    text_font, color = THECOLORS.get("grey100"), dsm = dsm)
 pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Wishing well", text_font, color = THECOLORS.get("grey100"), dsm = dsm)
-version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.0", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
+version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.1", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
 music_name = freetext.SuperText(screen, (5, 42), "《》", size = 19, color = THECOLORS.get("grey100"), dsm = dsm)
 music_arties = freetext.SuperText(screen, (5, display_size[1] - 93), "音乐家：", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
 # button开头的都是按钮，需要在遍历信号时设置对应的功能
@@ -143,6 +143,7 @@ show_highlight = True          # 显示高亮行
 show_lyrics_roll = True        # 是否自动滚动歌词
 music_lrc_is_roll = False      # 歌词已自动翻页
 music_key_is_load = False      # 标签信息是否读取
+music_key_is_read = False      # 标签信息是否设置
 music_key_name = ""            # 歌曲名标签
 music_key_arties = ""          # 艺术家名标签
 music_key_albums = ""          # 专辑名标签
@@ -352,57 +353,64 @@ while True:
 				unit.check_button = False
 
 	# 以下代码接受从事件遍历中发出的信号，对音乐对象进行操作，注意，有先后顺序！
-	if music_is_load is False and loop_music is True and button_loop.display_button is True:  # 单曲循环
-		music_list_index -= 1
-		music.load(music_path + music_list[music_list_index])
-		music_player = True
-		music_is_load = True
-		move_text = True
-		music.play()
-	elif music_is_load is False and 0 <= music_list_index < len(music_list):  # 正常一曲终了后播放下一曲
-		music.load(music_path + music_list[music_list_index])
-		music_player = True
-		music_is_load = True
-		music_lrc_is_load = False
-		music_lrc_is_read = False
-		music_key_is_load = False
-		music_lrc_is_roll = False
-		music_is_pure_music = False
-		move_text = True
-		music.play()
-	elif music_is_load is False and 0 > music_list_index:  # 在列表开头按下上一曲按钮，播放列表结尾的曲子
-		music_list_index = len(music_list) - 1
-		music.load(music_path + music_list[music_list_index])
-		music_player = True
-		music_is_load = True
-		music_lrc_is_load = False
-		music_lrc_is_read = False
-		music_key_is_load = False
-		music_lrc_is_roll = False
-		music_is_pure_music = False
-		move_text = True
-		music.play()
-	elif music_is_load is False and loop_music is True and button_loop.display_button is False:  # 列表循环
-		music_player = False
-		music_is_load = False
-		music_lrc_is_load = False
-		music_lrc_is_read = False
-		music_key_is_load = False
-		music_lrc_is_roll = False
-		music_is_pure_music = False
-		move_text = True
-		music_list_index = 0
-	elif music_is_load is False and loop_music is False:  # 顺序播放播完时，啥都不干
-		music_player = False
-		music_is_load = False
-		music_lrc_is_load = False
-		music_lrc_is_read = False
-		music_key_is_load = False
-		music_lrc_is_roll = False
-		music_is_pure_music = False
-		move_text = True
-	if music_push_load is True:
-		music.pause()
+	try:
+		if music_is_load is False and loop_music is True and button_loop.display_button is True:  # 单曲循环
+			music_list_index -= 1
+			music.load(music_path + music_list[music_list_index])
+			music_player = True
+			music_is_load = True
+			move_text = True
+			music.play()
+		elif music_is_load is False and 0 <= music_list_index < len(music_list):  # 正常一曲终了后播放下一曲
+			music.load(music_path + music_list[music_list_index])
+			music_player = True
+			music_is_load = True
+			music_lrc_is_load = False
+			music_lrc_is_read = False
+			music_key_is_load = False
+			music_lrc_is_roll = False
+			music_key_is_read = False
+			music_is_pure_music = False
+			move_text = True
+			music.play()
+		elif music_is_load is False and 0 > music_list_index:  # 在列表开头按下上一曲按钮，播放列表结尾的曲子
+			music_list_index = len(music_list) - 1
+			music.load(music_path + music_list[music_list_index])
+			music_player = True
+			music_is_load = True
+			music_lrc_is_load = False
+			music_lrc_is_read = False
+			music_key_is_load = False
+			music_lrc_is_roll = False
+			music_key_is_read = False
+			music_is_pure_music = False
+			move_text = True
+			music.play()
+		elif music_is_load is False and loop_music is True and button_loop.display_button is False:  # 列表循环
+			music_player = False
+			music_is_load = False
+			music_lrc_is_load = False
+			music_lrc_is_read = False
+			music_key_is_load = False
+			music_lrc_is_roll = False
+			music_key_is_read = False
+			music_is_pure_music = False
+			move_text = True
+			music_list_index = 0
+		elif music_is_load is False and loop_music is False:  # 顺序播放播完时，啥都不干
+			music_player = False
+			music_is_load = False
+			music_lrc_is_load = False
+			music_lrc_is_read = False
+			music_key_is_load = False
+			music_lrc_is_roll = False
+			music_key_is_read = False
+			music_is_pure_music = False
+			move_text = True
+		if music_push_load is True:
+			music.pause()
+	except pygame.error:
+		music_list_index += 1
 		
 	# 获取标签信息
 	if music_is_load is True and music_key_is_load is False:
@@ -446,7 +454,11 @@ while True:
 		except pygame.error:
 			music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg'))
 		finally:
-			music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+			try:
+				music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+			except ValueError:
+				music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg'))
+				music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
 		introduction = open("introduction.txt", "r+")
 		introduction.seek(0, 0)
 		for line in introduction:
@@ -485,15 +497,17 @@ while True:
 		music_lrc_draw = []
 		lrc_line_index = 0
 	# 读取标签信息后，使用标签信息作为歌曲信息
-	if music_lrc_is_load is False and music_key_is_load is True:
+	if music_lrc_is_load is False and music_key_is_load is True and music_key_is_read is False:
 		if music_key_name is not None:
 			music_name.set_msg(str(music_key_name))
 		if music_key_arties is not None and music_key_albums is not None:
-			music_name.set_msg("音乐家：" + str(music_key_arties) + "  专辑：" + str(music_key_albums))
+			music_arties.set_msg("音乐家：" + str(music_key_arties) + "  专辑：" + str(music_key_albums))
 		else:
 			music_arties.set_msg("音乐家：未知  专辑：未知")
+		music_key_is_read = True
+		music_lrc_is_load = True
 	# 如果没有读取标签，使用文件名作为歌曲信息
-	if music_lrc_is_load is False and music_key_is_load is False:
+	if music_lrc_is_load is False and music_key_is_load is False and music_key_is_read is False:
 		try:
 			music_name_arties = music_list[music_list_index][:len(music_list[music_list_index]) - 4].split('-', 1)
 			music_name.set_msg(music_name_arties[1][1:])
@@ -501,6 +515,7 @@ while True:
 		except IndexError:
 			music_name.set_msg("未知曲名")
 			music_arties.set_msg("音乐家：未知  专辑：未知")
+		music_key_is_read = True
 		freelog.write(str(format(time.time(), ".5f")) + "   ERROR : Do not load the lyrics:" +
 		              music_name.get_attribute().get("msg") + "\n")
 	if music_lrc_is_load is True and music_lrc_is_read is False:  # 读取歌词
@@ -508,9 +523,12 @@ while True:
 			unit.set_msg("")
 		if use_music_key_lrc is False:
 			music_lrc_line = []  # 用于存放歌词的每一行
-			for each_line in music_lrc_text:
-				music_lrc_draw.append(False)
-				music_lrc_line.append(each_line)
+			try:
+				for each_line in music_lrc_text:
+					music_lrc_draw.append(False)
+					music_lrc_line.append(each_line)
+			except ValueError:
+				pass
 		else:
 			for _ in music_lrc_line:
 				music_lrc_draw.append(False)
@@ -549,17 +567,23 @@ while True:
 			except (IndexError, TypeError, ValueError):
 				music_lrc_line_len_index += 1
 		freelog.write(str(format(time.time(), ".5f")) + "   Set the lyrics:" + music_name.get_attribute().get("msg") + "\n")
-	if lrc_line_index < 0:
-		lrc_line_index = 0
-	elif lrc_line_index > music_lrc_line_len - lyrics_len:
-		lrc_line_index = music_lrc_line_len - lyrics_len
+	if sea_music_list is False:
+		if lrc_line_index < 0:
+			lrc_line_index = 0
+		elif lrc_line_index > music_lrc_line_len - lyrics_len:
+			lrc_line_index = music_lrc_line_len - lyrics_len
+	else:
+		if lrc_line_index < 0:
+			lrc_line_index = 0
+		elif lrc_line_index > len(music_list) - lyrics_len:
+			lrc_line_index = len(music_list) - lyrics_len
 	if move_text is True:
 		for unit in lyrics:
 			unit.set_msg("")
 	if sea_music_list is False and sea_music_film is False and move_text is True:
 		try:
 			if music_lrc_line_len < 4:
-				lyrics[int(lyrics_len / 2)].set_msg("歌词文件异常！")
+				lyrics[int(lyrics_len / 2)].set_msg("未找到歌词！")
 			elif music_lrc_line_len >= 4 and music_lrc_line[music_lrc_line_len - 1].find("[99:00.00]") != -1:
 				lyrics[int(lyrics_len / 2)].set_msg("纯音乐 请欣赏")
 				music_is_pure_music = True
@@ -630,6 +654,11 @@ while True:
 	# 打印歌词
 	if sea_music_list is False and sea_music_film is False and music_is_pure_music is False:
 		line_index = 13 - (highlight_lrc_index - lrc_line_index)
+		if line_index < 0 or line_index > 13:
+			line_index = 100
+		pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+	if sea_music_list is True and sea_music_film is False:
+		line_index = 13 - (music_list_index - lrc_line_index)
 		if line_index < 0 or line_index > 13:
 			line_index = 100
 		pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
