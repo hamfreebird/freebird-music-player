@@ -69,7 +69,7 @@ time_num = freetext.SuperText(screen, (display_size[0] - 73, 120), "", color = T
 freebird_text = freetext.SuperText(screen, (display_size[0] - 95, display_size[1] - 30), "by freebird",
                                    text_font, color = THECOLORS.get("grey100"), dsm = dsm)
 pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Wishing well", text_font, color = THECOLORS.get("grey100"), dsm = dsm)
-version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.1", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
+version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.2", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
 music_name = freetext.SuperText(screen, (5, 42), "《》", size = 19, color = THECOLORS.get("grey100"), dsm = dsm)
 music_arties = freetext.SuperText(screen, (5, display_size[1] - 93), "音乐家：", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
 # button开头的都是按钮，需要在遍历信号时设置对应的功能
@@ -653,14 +653,20 @@ while True:
 	
 	# 打印歌词
 	if sea_music_list is False and sea_music_film is False and music_is_pure_music is False:
-		line_index = 13 - (highlight_lrc_index - lrc_line_index)
-		if line_index < 0 or line_index > 13:
-			line_index = 100
+		if len(music_lrc_line) <= 14:
+			line_index = 13 - highlight_lrc_index
+		else:
+			line_index = 13 - (highlight_lrc_index - lrc_line_index)
+			if line_index < 0 or line_index > 13:
+				line_index = 100
 		pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
 	if sea_music_list is True and sea_music_film is False:
-		line_index = 13 - (music_list_index - lrc_line_index)
-		if line_index < 0 or line_index > 13:
-			line_index = 100
+		if len(music_list) <= 14:
+			line_index = 13 - music_list_index
+		else:
+			line_index = 13 - (music_list_index - lrc_line_index)
+			if line_index < 0 or line_index > 13:
+				line_index = 100
 		pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
 	for unit in lyrics:
 		unit.draw()

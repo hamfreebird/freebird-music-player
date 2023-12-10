@@ -18,6 +18,9 @@ A native music player that has some simple features and supports lyrics display
 	Click on the top of the song name in the lyrics list, the song list and the song infomation
 	Press b key to switch background, the lyrics are bright and the color will change
 	Click the 'exit' exit program at the top right
+	
+	注：
+	编辑歌曲简介需要在文件名后加上" $$ "再输入简介！不能换行！结尾再加一个空格！
 
 欢迎报告BUG
 Welcome to report bugs
