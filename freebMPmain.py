@@ -201,14 +201,14 @@ while True:
 				lrc_line_index += 1          # 歌词向下滚动
 			move_text = True
 			_user_use_MOUSEWHEEL = True
-		elif event.type == pygame.MOUSEMOTION and 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
-				42 < pygame.mouse.get_pos()[1] < display_size[1] - 93 and _user_use_MOUSEWHEEL is False:
-			if event.dict.get("touch") is True:
-				if event.dict.get("y") >= 0:
-					lrc_line_index -= 1
-				elif event.dict.get("y") <= 0:
-					lrc_line_index += 1
-				move_text = True
+		# elif event.type == pygame.MOUSEMOTION and 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
+		# 		42 < pygame.mouse.get_pos()[1] < display_size[1] - 93 and _user_use_MOUSEWHEEL is False:
+		# 	if event.dict.get("touch") is True:
+		# 		if event.dict.get("y") >= 0:
+		# 			lrc_line_index -= 1
+		# 		elif event.dict.get("y") <= 0:
+		# 			lrc_line_index += 1
+		# 		move_text = True
 		elif 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
 				5 < pygame.mouse.get_pos()[1] < 40 and event.type == pygame.MOUSEBUTTONDOWN:
 			if sea_music_list is False and sea_music_film is False:      # 判断用户是否点击了歌曲文件名
@@ -293,15 +293,15 @@ while True:
 			button_adva.set_msg_color(THECOLORS.get("grey95"))
 			button_adva.check_button = True
 			if event.type == pygame.MOUSEBUTTONDOWN:  # 按下快进键
-				music.pause()
-				music_pos = music.get_pos() + 5   # 将播放时间后移5秒
+				music_pos = music.get_pos() + 5000  # 将播放时间后移5秒
+				music.stop()
 				music.play(start = music_pos)
 		elif freebutton.position_button(button_back, pygame.mouse.get_pos()) is True:
 			button_back.set_msg_color(THECOLORS.get("grey95"))
 			button_back.check_button = True
 			if event.type == pygame.MOUSEBUTTONDOWN:  # 快退
-				music.pause()
-				music_pos = music.get_pos() - 5
+				music_pos = music.get_pos() - 5000
+				music.stop()
 				music.play(start = music_pos)
 		elif freebutton.position_button(button_next, pygame.mouse.get_pos()) is True:
 			button_next.set_msg_color(THECOLORS.get("grey95"))
@@ -360,6 +360,10 @@ while True:
 			music_player = True
 			music_is_load = True
 			move_text = True
+			music_key_is_load = False
+			music_lrc_is_roll = False
+			music_key_is_read = False
+			music_is_pure_music = False
 			music.play()
 		elif music_is_load is False and 0 <= music_list_index < len(music_list):  # 正常一曲终了后播放下一曲
 			music.load(music_path + music_list[music_list_index])
