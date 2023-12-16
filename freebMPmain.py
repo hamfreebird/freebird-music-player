@@ -41,7 +41,9 @@ mixer_init(frequency = 44100)  # 音乐模块的初始化
 frame_number = 60
 pygame.display.set_caption("freebird music player")
 pygame.display.set_icon(pygame.image.load("assets\\freebird_music.ico"))
+# text_font = Font("assets\\AiNiPoSui-ShengGuoWanMei-2.ttf", 20)
 text_font = Font("assets\\AiNiPoSui-ShengGuoWanMei-2.ttf", 20)
+lrc_font = Font("assets\\simhei.ttf", 20)
 pg_wind_music1 = pygame.image.load("assets\\wind_music.JPG")
 pg_wind_music2 = pygame.image.load("assets\\wind_music2.JPG")
 pg_wind_music3 = pygame.image.load("assets\\wind_music3.jpg")
@@ -60,39 +62,51 @@ music.set_endevent(MUSICOVER)
 freelog.write(str(format(time.time(), ".5f")) + "   pygame : And the initialization\n")
 
 # 需要显示的可交互的元素
-event_text = freetext.SuperText(screen, [3, 5], "", size = 10, color = THECOLORS.get("grey70"), dsm = dsm)
-music_name_text = freetext.SuperText(screen, [3, 20], "文件名称 -> ", size = 15, color = THECOLORS.get("grey80"), dsm = dsm)
-vol_text = freetext.SuperText(screen, (display_size[0] - 73, 50), "音量", size = 20, color = THECOLORS.get("grey80"), dsm = dsm)
-vol_num = freetext.SuperText(screen, (display_size[0] - 73, 70), "", color = THECOLORS.get("grey80"), dsm = dsm)
-time_text = freetext.SuperText(screen, (display_size[0] - 73, 100), "时间", size = 20, color = THECOLORS.get("grey80"), dsm = dsm)
-time_num = freetext.SuperText(screen, (display_size[0] - 73, 120), "", color = THECOLORS.get("grey80"), dsm = dsm)
+event_text = freetext.SuperText(screen, [3, 5], "", "assets\\simhei.ttf", size = 10,
+                                color = THECOLORS.get("grey70"), dsm = dsm)
+music_name_text = freetext.SuperText(screen, [3, 20], "文件名称 -> ", "assets\\simhei.ttf",
+                                     size = 15, color = THECOLORS.get("grey80"), dsm = dsm)
+vol_text = freetext.SuperText(screen, (display_size[0] - 73, 50), "音量", "assets\\simhei.ttf",
+                              size = 20, color = THECOLORS.get("grey80"), dsm = dsm)
+vol_num = freetext.SuperText(screen, (display_size[0] - 73, 70), "", "assets\\simhei.ttf",
+                             color = THECOLORS.get("grey80"), dsm = dsm)
+time_text = freetext.SuperText(screen, (display_size[0] - 73, 100), "时间", "assets\\simhei.ttf",
+                               size = 20, color = THECOLORS.get("grey80"), dsm = dsm)
+time_num = freetext.SuperText(screen, (display_size[0] - 73, 120), "", "assets\\simhei.ttf",
+                              color = THECOLORS.get("grey80"), dsm = dsm)
 freebird_text = freetext.SuperText(screen, (display_size[0] - 95, display_size[1] - 30), "by freebird",
                                    text_font, color = THECOLORS.get("grey100"), dsm = dsm)
-pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Wishing well", text_font, color = THECOLORS.get("grey100"), dsm = dsm)
-version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.2", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
-music_name = freetext.SuperText(screen, (5, 42), "《》", size = 19, color = THECOLORS.get("grey100"), dsm = dsm)
-music_arties = freetext.SuperText(screen, (5, display_size[1] - 93), "音乐家：", size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
+pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Wishing well", text_font,
+                                   color = THECOLORS.get("grey100"), dsm = dsm)
+version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.3", "assets\\simhei.ttf",
+                                  size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
+music_name = freetext.SuperText(screen, (5, 42), "《》", "assets\\simhei.ttf", size = 19,
+                                color = THECOLORS.get("grey100"), dsm = dsm)
+music_arties = freetext.SuperText(screen, (5, display_size[1] - 93), "音乐家：", "assets\\simhei.ttf",
+                                  size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
 # button开头的都是按钮，需要在遍历信号时设置对应的功能
-button_exit = freebutton.FreeButton(screen, [display_size[0] - 80, 0], [80, 40], "EXIT", border_color = THECOLORS.get("grey50"),
-									draw_border = True, msg_tran = True, dsm = dsm)
-button_go = freebutton.CircleButton(screen, (int(display_size[0] / 2), display_size[1] - 35), 30, "||",
+button_exit = freebutton.FreeButton(screen, [display_size[0] - 80, 0], [80, 40], "EXIT", "assets\\simhei.ttf",
+                                    border_color = THECOLORS.get("grey50"), draw_border = True, msg_tran = True, dsm = dsm)
+button_go = freebutton.CircleButton(screen, (int(display_size[0] / 2), display_size[1] - 35), 30, "||", "assets\\simhei.ttf",
 									width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-button_adva = freebutton.CircleButton(screen, (int(display_size[0] / 2 + 70), display_size[1] - 35), 20, ">>",
+button_adva = freebutton.CircleButton(screen, (int(display_size[0] / 2 + 70), display_size[1] - 35), 20, ">>", "assets\\simhei.ttf",
 									  width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-button_back = freebutton.CircleButton(screen, (int(display_size[0] / 2 - 70), display_size[1] - 35), 20, "<<",
+button_back = freebutton.CircleButton(screen, (int(display_size[0] / 2 - 70), display_size[1] - 35), 20, "<<", "assets\\simhei.ttf",
 									  width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-button_next = freebutton.CircleButton(screen, (int(display_size[0] / 2 + 125), display_size[1] - 35), 20, "|>",
+button_next = freebutton.CircleButton(screen, (int(display_size[0] / 2 + 125), display_size[1] - 35), 20, "|>", "assets\\simhei.ttf",
 									  width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-button_last = freebutton.CircleButton(screen, (int(display_size[0] / 2 - 125), display_size[1] - 35), 20, "<|",
+button_last = freebutton.CircleButton(screen, (int(display_size[0] / 2 - 125), display_size[1] - 35), 20, "<|", "assets\\simhei.ttf",
 									  width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-button_vol_add = freebutton.CircleButton(screen, (display_size[0] - 40, int(display_size[1] / 2 - 35)), 20, "V+",
+button_vol_add = freebutton.CircleButton(screen, (display_size[0] - 40, int(display_size[1] / 2 - 35)), 20, "V+", "assets\\simhei.ttf",
 										 width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-button_vol_min = freebutton.CircleButton(screen, (display_size[0] - 40, int(display_size[1] / 2 + 35)), 20, "V-",
+button_vol_min = freebutton.CircleButton(screen, (display_size[0] - 40, int(display_size[1] / 2 + 35)), 20, "V-", "assets\\simhei.ttf",
 										 width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-button_loop = freebutton.CircleButton(screen, (display_size[0] - 40, int(display_size[1] / 2 + 105)), 20, "L",
+button_loop = freebutton.CircleButton(screen, (display_size[0] - 40, int(display_size[1] / 2 + 105)), 20, "L", "assets\\simhei.ttf",
 									  width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
-lyrics = [freetext.SuperText(screen, (5, display_size[1] - 133 - 20 * index), "", size = 16, color = THECOLORS.get("grey80"), dsm = dsm)
+lyrics = [freetext.SuperText(screen, [5, (display_size[1] - 133 - 20 * index)], "", "assets\\simhei.ttf",
+                             size = 16, color = THECOLORS.get("grey80"), dsm = dsm)
 		  for index in range(0, int((display_size[1] - 75 - 40) / 20) - 4)]  # 歌词显示列表
+new_lyrics = []  # 歌词显示列表（新）
 # 以下两个列表可以通过for循环对列表中的对象批量操作，注意，text中的都是文本，对象的操作与按钮不同！
 button = [button_exit, button_go, button_adva, button_back, button_next, button_last, button_vol_add, button_vol_min, button_loop]
 text = [vol_text, vol_num, event_text, music_name_text, time_text, time_num, freebird_text, version_text, pleiades_text]
@@ -149,7 +163,6 @@ music_key_arties = ""          # 艺术家名标签
 music_key_albums = ""          # 专辑名标签
 music_key_image = None         # 专辑封面标签
 music_key_lrc = ""             # 歌词标签
-music_key_introduction = ""    # 歌曲介绍标签
 music_key_sample_rate = 0      # 采样速率
 music_key_channels = 0         # 声道信息
 music_kry_length = 0           # 音乐长度
@@ -292,17 +305,17 @@ while True:
 		elif freebutton.position_button(button_adva, pygame.mouse.get_pos()) is True:
 			button_adva.set_msg_color(THECOLORS.get("grey95"))
 			button_adva.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:  # 按下快进键
-				music_pos = music.get_pos() + 5000  # 将播放时间后移5秒
-				music.stop()
-				music.play(start = music_pos)
+			# if event.type == pygame.MOUSEBUTTONDOWN:  # 按下快进键
+			# 	music_pos = music.get_pos() + 5000  # 将播放时间后移5秒
+			# 	music.stop()
+			# 	music.play(start = music_pos)
 		elif freebutton.position_button(button_back, pygame.mouse.get_pos()) is True:
 			button_back.set_msg_color(THECOLORS.get("grey95"))
 			button_back.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:  # 快退
-				music_pos = music.get_pos() - 5000
-				music.stop()
-				music.play(start = music_pos)
+			# if event.type == pygame.MOUSEBUTTONDOWN:  # 快退
+			# 	music_pos = music.get_pos() - 5000
+			# 	music.stop()
+			# 	music.play(start = music_pos)
 		elif freebutton.position_button(button_next, pygame.mouse.get_pos()) is True:
 			button_next.set_msg_color(THECOLORS.get("grey95"))
 			button_next.check_button = True
@@ -463,16 +476,6 @@ while True:
 			except ValueError:
 				music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg'))
 				music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
-		introduction = open("introduction.txt", "r+")
-		introduction.seek(0, 0)
-		for line in introduction:
-			for index in range(0, len(line)):
-				if line[index] == "$" and line[index + 1] == "$":
-					if line[:index - 1] == music_list[music_list_index]:
-						music_key_introduction = line[index + 3:-1]
-		introduction.close()
-		if music_key_introduction == "":
-			music_key_introduction = music_key_name
 		music_key_is_load = True
 		freelog.write(str(format(time.time(), ".5f")) + "   Now load the key:" + "\n")
 
@@ -561,6 +564,7 @@ while True:
 		each_line_index = lyrics_len - 1
 		music_lrc_line_len_index = 0
 		lrc_time = []    # 每行歌词的时间
+		new_lyrics = []  # 每行歌词渲染后的图像
 		for each_line in music_lrc_line:
 			if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
 				break
@@ -570,6 +574,10 @@ while True:
 				music_lrc_line_len_index += 1
 			except (IndexError, TypeError, ValueError):
 				music_lrc_line_len_index += 1
+			img_text = lrc_font.render(each_line[10:-1], True, THECOLORS.get("grey80"))
+			# if img_text.get_width() > 630:
+			# 	pass
+			new_lyrics.append(img_text)
 		freelog.write(str(format(time.time(), ".5f")) + "   Set the lyrics:" + music_name.get_attribute().get("msg") + "\n")
 	if sea_music_list is False:
 		if lrc_line_index < 0:
@@ -623,11 +631,10 @@ while True:
 		lyrics[lyrics_len - 4].set_msg(prefix + "->  " + str(music_key_arties))
 		lyrics[lyrics_len - 5].set_msg(prefix + "专辑名")
 		lyrics[lyrics_len - 6].set_msg(prefix + "->  " + str(music_key_albums))
-		lyrics[lyrics_len - 8].set_msg(prefix + "简介")
-		lyrics[lyrics_len - 9].set_msg(prefix + "->  " + str(music_key_introduction))
-		lyrics[lyrics_len - 12].set_msg(prefix + "sr: " + str(music_key_sample_rate) + "Hz  ca: " +
+		lyrics[lyrics_len - 8].set_msg(prefix + "sr: " + str(music_key_sample_rate) + "Hz  ca: " +
 		                  str(music_key_channels) + "  len: " + str(int(music_kry_length)) + "s")
-		lyrics[lyrics_len - 13].set_msg(prefix + "use ID3v2")
+		lyrics[lyrics_len - 9].set_msg(prefix + "use ID3v2")
+		lyrics[lyrics_len - 12].set_msg(prefix + "freebird fly in the sky!")
 	move_text = False
 	
 	# 自动翻动歌词
@@ -656,6 +663,27 @@ while True:
 		music_lrc_is_roll = False
 	
 	# 打印歌词
+	# if sea_music_list is False and sea_music_film is False and move_text is True:
+	# 	if music_lrc_line_len - 4 <= lyrics_len:
+	# 		for write_index in range(0, music_lrc_line_len - 4):
+	# 			screen.blit(new_lyrics[lyrics_len - write_index - 1], (5, 220))
+	# 	else:
+	# 		try:
+	# 			for write_index in range(0, lyrics_len):
+	# 				screen.blit(new_lyrics[lyrics_len - write_index - 1], (5, 220))
+	# 		except IndexError:
+	# 			lrc_line_index -= 1
+	# elif sea_music_list is True and move_text is True:
+	# 	lyrics[int(lyrics_len / 2)].set_msg("")
+	# 	if len(music_list) <= lyrics_len:
+	# 		for write_index in range(0, len(music_list)):
+	# 			lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index]))
+	# 	else:
+	# 		try:
+	# 			for write_index in range(0, lyrics_len):
+	# 				lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
+	# 		except IndexError:
+	# 			lrc_line_index -= 1
 	if sea_music_list is False and sea_music_film is False and music_is_pure_music is False:
 		if len(music_lrc_line) <= 14:
 			line_index = 13 - highlight_lrc_index
@@ -664,7 +692,7 @@ while True:
 			if line_index < 0 or line_index > 13:
 				line_index = 100
 		pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
-	if sea_music_list is True and sea_music_film is False:
+	elif sea_music_list is True and sea_music_film is False:
 		if len(music_list) <= 14:
 			line_index = 13 - music_list_index
 		else:

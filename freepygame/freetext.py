@@ -15,7 +15,7 @@ class FreeText():
 		self.screen, self.msg, self.font, self.size, self.color = screen, msg, font, size, color
 		self.x, self.y = coordinates[0], coordinates[1]
 		try:
-			self._font = pygame.font.SysFont(font, size)
+			self._font = pygame.font.Font(font, size)
 		except TypeError:
 			self._font = font
 		self.img_text = self._font.render(self.msg, True, color)
@@ -36,32 +36,36 @@ class FreeText():
 
 	def set_color(self, color):
 		"""改变文本颜色"""
+		del self._font, self.img_text
 		try:
-			self._font = pygame.font.SysFont(self.font, self.size)
+			self._font = pygame.font.Font(self.font, self.size)
 		except TypeError:
 			self._font = self.font
 		self.img_text = self._font.render(self.msg, True, color)
 
 	def set_fout(self, font):
 		"""改变文本字体"""
+		del self._font, self.img_text
 		try:
-			self._font = pygame.font.SysFont(font, self.size)
+			self._font = pygame.font.Font(font, self.size)
 		except TypeError:
 			self._font = font
 		self.img_text = self._font.render(self.msg, True, self.color)
 
 	def set_size(self, size):
 		"""改变文本大小"""
+		del self._font, self.img_text
 		try:
-			self._font = pygame.font.SysFont(self.font, size)
+			self._font = pygame.font.Font(self.font, size)
 		except TypeError:
 			self._font = self.font
 		self.img_text = self._font.render(self.msg, True, self.color)
 
 	def set_msg(self, msg):
 		"""改变文本内容"""
+		del self._font, self.img_text
 		try:
-			self._font = pygame.font.SysFont(self.font, self.size)
+			self._font = pygame.font.Font(self.font, self.size)
 		except TypeError:
 			self._font = self.font
 		self.img_text = self._font.render(msg, True, self.color)
@@ -140,7 +144,17 @@ class NaSuperText(SuperText):
 		self.msg_img = self._font.render(self.msg, True, self.color, None)
 		self.msg_img_rect = self.msg_img.get_rect()
 		self.msg_img_rect.center = self.rect.center
+		
+class MidSuperText(SuperText):
+	def __init__(self, screen, coordinates, rect, msg, font = 'SimHei', size = 24, color = (0, 0, 0), dsm = 1):
+		super().__init__(screen, coordinates, msg, font, size, color, dsm)
+		self.rect = pygame.Rect(0, 0, rect[0] * self.dsm, rect[1] * self.dsm)
+		self.rect.centerx = (self.x + rect[0] / 2)
+		self.rect.centery = (self.y + rect[1] / 2)
+		self.img_text = self._font.render(self.msg, True, self.color, (0, 0, 0)).convert()
+		self.img_text_rect = self.img_text.get_rect()
+		self.img_text_rect.center = self.rect.center
 
 	def draw(self):
 		"""绘制文本"""
-		self.screen.blit(self.msg_img, self.msg_img_rect)
+		self.screen.blit(self.img_text, self.img_text_rect)

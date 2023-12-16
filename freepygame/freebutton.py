@@ -39,11 +39,11 @@ class FreeButton():
 		self.border = [border_width, border_color]
 		self.line = [line_width, line_color]
 		self.msg_tran = msg_tran
-		self.font = pygame.font.SysFont(font, size)
+		self.font = pygame.font.Font(font, size)
 		self.rect = pygame.Rect(0, 0, self.width * self.dsm, self.height * self.dsm)
 		self.rect.centerx = (self.coordinates[0] + self.width / 2)
 		self.rect.centery = (self.coordinates[1] + self.height / 2)
-		self.msg_img = self.font.render(self.msg, True, self.text_color, self.button_color)
+		self.msg_img = self.font.render(self.msg, True, self.text_color, self.button_color).convert()
 		if self.msg_tran is True: self.msg_img.set_colorkey(self.button_color)
 		self.msg_img_rect = self.msg_img.get_rect()
 		self.msg_img_rect.center = self.rect.center
@@ -113,6 +113,10 @@ class FreeButton():
 	def set_border_width(self, width):
 		"""改变边框宽度"""
 		self.border[0] = width
+		
+	def set_msg_tran(self, msg_tran):
+		if msg_tran is True: self.msg_img.colorkeys(self.button_color)
+		self.msg_tran = msg_tran
 
 	def draw(self):
 		"""绘制按钮"""
@@ -140,7 +144,7 @@ class CircleButton(FreeCircle):
 				 draw_border, border_width, color, border_color)
 		self.msg = msg
 		self.dsm = dsm
-		self._font = pygame.font.SysFont(font, size)
+		self._font = pygame.font.Font(font, size)
 		self.button_color = button_color
 		self.size = size
 		self.msg_color = msg_color
