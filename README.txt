@@ -23,9 +23,10 @@ A native music player that has some simple features and supports lyrics display
 Welcome to report bugs
 
 
-v1.1.0 更新：
+v1.1 更新：
 	文件后缀名筛选，优化歌词处理
 	
-v1.2.0 更新：
+v1.2 更新：
 	歌词自动滚动，当前播放的歌词高亮显示
 	新增歌曲标签读取功能，可读取歌曲内嵌的歌词,专辑封面,标签信息等
+	新增双语歌词自动分行功能，完善歌词文件读取机制
