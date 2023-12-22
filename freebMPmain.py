@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""freebird music player -> main"""
+"""
+freebird music player -> main
+Copyright 2023 freebird
+"""
 
 import os
 import sys
@@ -11,6 +14,7 @@ from pygame.colordict import THECOLORS       # pygame的颜色列表
 from pygame.font import Font
 from freepygame import freetext, freebutton
 from _io import text_encoding
+# from PIL import Image, ImageFilter
 import mutagen
 
 text_encoding("utf-8")
@@ -36,7 +40,7 @@ frame_number = 60
 pygame.display.set_caption("freebird music player")
 pygame.display.set_icon(pygame.image.load("assets\\freebird_music.ico"))
 # text_font = Font("assets\\AiNiPoSui-ShengGuoWanMei-2.ttf", 20)
-text_font = Font("assets\\AiNiPoSui-ShengGuoWanMei-2.ttf", 20)
+text_font = Font("assets\\ZhiyongWrite-2.ttf", 22)
 lrc_font = Font("assets\\simhei.ttf", 20)
 pg_wind_music1 = pygame.image.load("assets\\wind_music.JPG")
 pg_wind_music2 = pygame.image.load("assets\\wind_music2.JPG")
@@ -67,11 +71,11 @@ time_text = freetext.SuperText(screen, (display_size[0] - 73, 100), "时间", "a
                                size = 20, color = THECOLORS.get("grey80"), dsm = dsm)
 time_num = freetext.SuperText(screen, (display_size[0] - 73, 120), "", "assets\\simhei.ttf",
                               color = THECOLORS.get("grey80"), dsm = dsm)
-freebird_text = freetext.SuperText(screen, (display_size[0] - 96, display_size[1] - 30), "by freebird",
-                                   text_font, color = THECOLORS.get("grey100"), dsm = dsm)
+freebird_text = freetext.SuperText(screen, (display_size[0] - 145, display_size[1] - 30), "freebird", size = 20,
+                                   font = "assets\\FeiXiangDeNiaoErBeiChongChi1-2.ttf", color = THECOLORS.get("grey100"), dsm = dsm)
 pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Wishing well", text_font,
                                    color = THECOLORS.get("grey100"), dsm = dsm)
-version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.4", "assets\\simhei.ttf",
+version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.5", "assets\\simhei.ttf",
                                   size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
 music_name = freetext.SuperText(screen, (5, 42), "《》", "assets\\simhei.ttf", size = 19,
                                 color = THECOLORS.get("grey100"), dsm = dsm)
@@ -96,6 +100,17 @@ button_vol_min = freebutton.CircleButton(screen, (display_size[0] - 40, int(disp
 										 width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
 button_loop = freebutton.CircleButton(screen, (display_size[0] - 40, int(display_size[1] / 2 + 105)), 20, "L", "assets\\simhei.ttf",
 									  width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
+button_set_highlight = freebutton.CircleButton(screen, (30, 130), 20, "H", "assets\\simhei.ttf",
+                                               width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
+button_set_branch = freebutton.CircleButton(screen, (150, 130), 20, "B", "assets\\simhei.ttf",
+                                            width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
+button_set_Keyboard = freebutton.CircleButton(screen, (270, 130), 20, "K", "assets\\simhei.ttf",
+                                              width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
+button_set_image = freebutton.CircleButton(screen, (390, 130), 20, "I", "assets\\simhei.ttf",
+                                              width = 1, msg_tran = True, draw_border = True, border_color = THECOLORS.get("grey80"), dsm = dsm)
+# msg开头的是输入框，使用和按钮一样的坐标检测函数
+msg_music_path = freetext.FreeMsg(screen, (100, 100), (20, 200), "", "assets\\simhei.ttf", 20,
+                                  THECOLORS.get("grey80"), THECOLORS.get("grey0"), 1)
 lyrics = [freetext.SuperText(screen, [5, (display_size[1] - 133 - 20 * index)], "", "assets\\simhei.ttf",
                              size = 16, color = THECOLORS.get("grey80"), dsm = dsm)
 		  for index in range(0, int((display_size[1] - 75 - 40) / 20) - 4)]  # 歌词显示列表
@@ -103,6 +118,7 @@ new_lyrics = []  # 歌词显示列表（新）
 # 以下两个列表可以通过for循环对列表中的对象批量操作，注意，text中的都是文本，对象的操作与按钮不同！
 button = [button_exit, button_go, button_adva, button_back, button_next, button_last, button_vol_add, button_vol_min, button_loop]
 text = [vol_text, vol_num, event_text, music_name_text, time_text, time_num, freebird_text, version_text, pleiades_text]
+set_button = [button_set_highlight, button_set_branch, button_set_Keyboard, button_set_image]
 for unit in button:
 	unit.display_button = False
 
@@ -145,6 +161,7 @@ music_lrc_line = []            # 每一行歌词的内容
 music_lrc_draw = []            # 每一行歌词绘制的状态
 sea_music_list = False         # 是否显示文件列表
 sea_music_film = False         # 是否显示歌曲信息
+sea_setting_film = False       # 是否显示设置界面
 music_list_index = 0           # 文件列表索引，控制播放的音乐文件
 music_push_load = True         # 是否按下暂停键
 music_is_load = False          # 音乐文件是否载入
@@ -168,6 +185,10 @@ music_key_channels = 0         # 声道信息
 music_kry_length = 0           # 音乐长度
 use_music_key_lrc = False      # 是否使用标签中的歌词
 music_is_pure_music = False    # 音乐是纯音乐或没有歌词
+branch_lrc_text = False        # 是否进行歌词分行
+write_msg = False              # 是否写入输入框
+use_keyboard_to_set = False    # 是否使用键盘设置
+finally_image = None           # 模糊图像
 
 # 音乐播放的准备
 if music_list_index < len(music_list):
@@ -182,6 +203,17 @@ else:
 	music.set_volume(1)
 	vol_num.set_msg(str(music.get_volume() * 100))
 	music_player = False
+	
+def _init_music_argument():
+	global music_lrc_is_load, music_lrc_is_read, music_key_is_load, music_lrc_is_roll, \
+		music_key_is_read, music_is_pure_music, move_text
+	music_lrc_is_load = False
+	music_lrc_is_read = False
+	music_key_is_load = False
+	music_lrc_is_roll = False
+	music_key_is_read = False
+	music_is_pure_music = False
+	move_text = True
 
 # 主循环
 while True:
@@ -189,7 +221,7 @@ while True:
 	event_text.set_msg("现在时间：" + str(time.localtime().tm_year) + "年 " + str(time.localtime().tm_mon) + "月 " +
 	                   str(time.localtime().tm_mday) + "日 " + str(time.localtime().tm_hour) + "时 " +
 					   str(time.localtime().tm_min) + "分 " + str(time.localtime().tm_sec) + "秒   " +
-					   "当前帧速率 " + str(int(clock.get_fps())) + "     freebird fly in the sky!")
+					   "当前帧速率 " + str(int(clock.get_fps())) + "     Copyright 2023 freebird")
 	# 事件和信号遍历
 	for event in pygame.event.get():
 		_user_use_MOUSEWHEEL = False
@@ -221,17 +253,24 @@ while True:
 		# 		move_text = True
 		elif 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
 				5 < pygame.mouse.get_pos()[1] < 40 and event.type == pygame.MOUSEBUTTONDOWN:
-			if sea_music_list is False and sea_music_film is False:      # 判断用户是否点击了歌曲文件名
+			if sea_music_list is False and sea_music_film is False and sea_setting_film is False:      # 判断用户是否点击了歌曲文件名
 				sea_music_list = True
 				sea_music_film = False
-			elif sea_music_list is True and sea_music_film is False:
+				sea_setting_film = False
+			elif sea_music_list is True and sea_music_film is False and sea_setting_film is False:
 				sea_music_list = False
 				sea_music_film = True
+				sea_setting_film = False
+			elif sea_music_list is False and sea_music_film is True and sea_setting_film is False:
+				sea_music_list = False
+				sea_music_film = False
+				sea_setting_film = True
 			else:
 				sea_music_list = False
 				sea_music_film = False
+				sea_setting_film = False
 			move_text = True
-		elif event.type == pygame.KEYDOWN:   # 键盘事件
+		elif event.type == pygame.KEYDOWN and use_keyboard_to_set is True:   # 键盘事件
 			if event.key == pygame.K_b:
 				pg_wind_music_index -= 1     # 切换背景
 			elif event.key == pygame.K_l:
@@ -249,6 +288,20 @@ while True:
 				move_text = True
 			elif event.key == pygame.K_n:
 				lrc_line_index += 1
+				move_text = True
+			elif event.key == pygame.K_f:
+				if branch_lrc_text is True:
+					branch_lrc_text = False
+				else:
+					branch_lrc_text = True
+				music_player = True
+				music_is_load = True
+				_init_music_argument()
+			elif event.key == pygame.K_s:
+				if sea_setting_film is False:
+					sea_setting_film = True
+				else:
+					sea_setting_film = False
 				move_text = True
 			elif event.key == pygame.K_SPACE:
 				if button_go.display_button is False:  # 播放和暂停时的按钮样式
@@ -338,7 +391,7 @@ while True:
 			button_vol_min.set_msg_color(THECOLORS.get("grey95"))
 			button_vol_min.check_button = True
 			if event.type == pygame.MOUSEBUTTONDOWN:
-				music.set_volume(music.get_volume() - 0.05)   # 音量减
+				music.set_volume(music.get_volume() - 0.05)   # 音量
 		elif freebutton.position_button(button_loop, pygame.mouse.get_pos()) is True:
 			button_loop.set_msg_color(THECOLORS.get("grey95"))
 			button_loop.check_button = True
@@ -353,11 +406,53 @@ while True:
 				elif loop_music is True and button_loop.display_button is False:
 					button_loop.set_msg("OL")
 					button_loop.display_button = True
+		elif freebutton.position_button(msg_music_path, pygame.mouse.get_pos()) is True:
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if msg_music_path.write_type() is False:
+					msg_music_path.write_start()
+				else:
+					msg_music_path.write_end()
+		elif freebutton.position_button(button_set_highlight, pygame.mouse.get_pos()) is True:
+			button_set_highlight.set_msg_color(THECOLORS.get("grey95"))
+			button_set_highlight.check_button = True
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if show_highlight is True:
+					show_highlight = False
+				else:
+					show_highlight = True
+		elif freebutton.position_button(button_set_Keyboard, pygame.mouse.get_pos()) is True:
+			button_set_Keyboard.set_msg_color(THECOLORS.get("grey95"))
+			button_set_Keyboard.check_button = True
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if use_keyboard_to_set is True:
+					use_keyboard_to_set = False
+				else:
+					use_keyboard_to_set = True
+		elif freebutton.position_button(button_set_image, pygame.mouse.get_pos()) is True:
+			button_set_image.set_msg_color(THECOLORS.get("grey95"))
+			button_set_image.check_button = True
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				pg_wind_music_index -= 1
+		elif freebutton.position_button(button_set_branch, pygame.mouse.get_pos()) is True:
+			button_set_branch.set_msg_color(THECOLORS.get("grey95"))
+			button_set_branch.check_button = True
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if branch_lrc_text is True:
+					branch_lrc_text = False
+				else:
+					branch_lrc_text = True
+				music_player = True
+				music_is_load = True
+				_init_music_argument()
 		else:
 			for unit in button:
 				unit.check_button = False  # 这里的check_button是用于控制按钮是否被按下的，上面的代码中也有
+			for unit in set_button:
+				unit.check_button = False
 		if event.type == pygame.WINDOWLEAVE:  # 当光标离开窗口后，坐标依然停留在离开前的位置，可能造成按钮一直被按下的假象
 			for unit in button:               # 所以这里在设置一次
+				unit.check_button = False
+			for unit in set_button:
 				unit.check_button = False
 
 	# 以下代码接受从事件遍历中发出的信号，对音乐对象进行操作，注意，有先后顺序！
@@ -367,60 +462,30 @@ while True:
 			music.load(music_path + music_list[music_list_index])
 			music_player = True
 			music_is_load = True
-			music_lrc_is_load = False
-			music_lrc_is_read = False
-			music_key_is_load = False
-			music_lrc_is_roll = False
-			music_key_is_read = False
-			music_is_pure_music = False
-			move_text = True
+			_init_music_argument()
 			music.play()
 		elif music_is_load is False and 0 <= music_list_index < len(music_list):  # 正常一曲终了后播放下一曲
 			music.load(music_path + music_list[music_list_index])
 			music_player = True
 			music_is_load = True
-			music_lrc_is_load = False
-			music_lrc_is_read = False
-			music_key_is_load = False
-			music_lrc_is_roll = False
-			music_key_is_read = False
-			music_is_pure_music = False
-			move_text = True
+			_init_music_argument()
 			music.play()
 		elif music_is_load is False and 0 > music_list_index:  # 在列表开头按下上一曲按钮，播放列表结尾的曲子
 			music_list_index = len(music_list) - 1
 			music.load(music_path + music_list[music_list_index])
 			music_player = True
 			music_is_load = True
-			music_lrc_is_load = False
-			music_lrc_is_read = False
-			music_key_is_load = False
-			music_lrc_is_roll = False
-			music_key_is_read = False
-			music_is_pure_music = False
-			move_text = True
+			_init_music_argument()
 			music.play()
 		elif music_is_load is False and loop_music is True and button_loop.display_button is False:  # 列表循环
 			music_player = False
 			music_is_load = False
-			music_lrc_is_load = False
-			music_lrc_is_read = False
-			music_key_is_load = False
-			music_lrc_is_roll = False
-			music_key_is_read = False
-			music_is_pure_music = False
-			move_text = True
+			_init_music_argument()
 			music_list_index = 0
 		elif music_is_load is False and loop_music is False:  # 顺序播放播完时，啥都不干
 			music_player = False
 			music_is_load = False
-			music_lrc_is_load = False
-			music_lrc_is_read = False
-			music_key_is_load = False
-			music_lrc_is_roll = False
-			music_key_is_read = False
-			music_is_pure_music = False
-			move_text = True
+			_init_music_argument()
 		if music_push_load is True:
 			music.pause()
 	except pygame.error:
@@ -473,6 +538,12 @@ while True:
 			except ValueError:
 				music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg'))
 				music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+		
+		# create the original pygame surface
+		# c_size, c_image_mode, c_raw = (260, 260), 'RGBA', _film
+		# surf = pygame.image.fromstring(c_raw, c_size, c_image_mode)
+		# pil_blured = Image.fromstring("RGBA", c_size, c_raw).filter(ImageFilter.GaussianBlur(radius=6))
+		# finally_image = pygame.image.fromstring(pil_blured.tostring("raw", c_image_mode), c_size, c_image_mode)
 		music_key_is_load = True
 
 	# 以下代码用于检测歌词，排版与打印歌词
@@ -558,39 +629,54 @@ while True:
 		music_lrc_line_len_index = 0
 		lrc_time = []    # 每行歌词的时间
 		new_lyrics = []  # 每行歌词渲染后的图像
-		index_offset_quantity = 0
-		for each_index in range(0, len(music_lrc_line)):
-			this_line_time = 0
-			new_line = music_lrc_line[each_index + index_offset_quantity].split(" / ")
-			if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
-				break
-			try:
-				this_line_time = int(new_line[0][1:3]) * 60 + int(new_line[0][4:6]) + int(new_line[0][7:9]) / 100
-			except (TypeError, ValueError):
+		if branch_lrc_text is True:
+			index_offset_quantity = 0
+			for each_index in range(0, len(music_lrc_line)):
 				this_line_time = 0
-			if len(new_line) == 2:
+				new_line = music_lrc_line[each_index + index_offset_quantity].split(" / ")
+				if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
+					break
 				try:
-					lrc_time.append(this_line_time)
-					music_lrc_line[each_index + index_offset_quantity] = new_line[0] + " / "
-					lrc_time.append(this_line_time)
-					music_lrc_line.insert(each_index + index_offset_quantity + 1, "[00:00:00]" + new_line[1])
-					music_lrc_line_len_index += 2
-				except (IndexError, TypeError, ValueError):
-					music_lrc_line_len_index += 1
-			else:
+					this_line_time = int(new_line[0][1:3]) * 60 + int(new_line[0][4:6]) + int(new_line[0][7:9]) / 100
+				except (TypeError, ValueError):
+					this_line_time = 0
+				if len(new_line) == 2:
+					try:
+						lrc_time.append(this_line_time)
+						music_lrc_line[each_index + index_offset_quantity] = new_line[0] + " / "
+						lrc_time.append(this_line_time)
+						music_lrc_line.insert(each_index + index_offset_quantity + 1, "[00:00:00]" + new_line[1])
+						music_lrc_line_len_index += 2
+					except (IndexError, TypeError, ValueError):
+						music_lrc_line_len_index += 1
+				else:
+					try:
+						# 将每行歌词的时间导入时间列表
+						lrc_time.append(this_line_time)
+						music_lrc_line_len_index += 1
+					except (IndexError, TypeError, ValueError):
+						music_lrc_line_len_index += 1
+				index_offset_quantity += len(new_line) - 1
+			for index in range(0, len(lrc_time)):
+				try:
+					if lrc_time[index] == 0:
+						lrc_time.pop(index)
+				except IndexError:
+					break
+		else:
+			for each_line in music_lrc_line:
+				if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
+					break
 				try:
 					# 将每行歌词的时间导入时间列表
-					lrc_time.append(this_line_time)
+					lrc_time.append(int(each_line[1:3]) * 60 + int(each_line[4:6]) + int(each_line[7:9]) / 100)
 					music_lrc_line_len_index += 1
 				except (IndexError, TypeError, ValueError):
 					music_lrc_line_len_index += 1
-			index_offset_quantity += len(new_line) - 1
-		for index in range(0, len(lrc_time)):
-			try:
-				if lrc_time[index] == 0:
-					lrc_time.pop(index)
-			except IndexError:
-				break
+				img_text = lrc_font.render(each_line[10:-1], True, THECOLORS.get("grey80"))
+				# if img_text.get_width() > 630:
+				# 	pass
+				new_lyrics.append(img_text)
 		music_lrc_line_len = len(music_lrc_line)
 	if sea_music_list is False:
 		if lrc_line_index < 0:
@@ -605,7 +691,7 @@ while True:
 	if move_text is True:
 		for unit in lyrics:
 			unit.set_msg("")
-	if sea_music_list is False and sea_music_film is False and move_text is True:
+	if sea_music_list is False and sea_music_film is False and sea_setting_film is False and move_text is True:
 		try:
 			if music_lrc_line_len < 4:
 				lyrics[int(lyrics_len / 2)].set_msg("未找到歌词！")
@@ -648,13 +734,15 @@ while True:
 		                  str(music_key_channels) + "  len: " + str(int(music_kry_length)) + "s")
 		lyrics[lyrics_len - 9].set_msg(prefix + "use ID3v2")
 		lyrics[lyrics_len - 12].set_msg(prefix + "freebird fly in the sky!")
+	elif sea_setting_film is True and move_text is True:
+		lyrics[lyrics_len - 1].set_msg("滚动歌词       歌词分行       键盘快捷键     背景切换")
 	move_text = False
 	
 	# 自动翻动歌词
 	now_time = time.time()
 	now_lyc_time = float(music.get_pos() / 1000)
 	roll_two_lrc_line = False
-	if sea_music_list is False and music_lrc_is_read is True:
+	if sea_music_list is False and music_lrc_is_read is True and show_highlight is True:
 		need_set_highlight = False
 		each_line_index = lyrics_len - 1
 		music_lrc_line_index = 1
@@ -663,6 +751,8 @@ while True:
 			# 遍历时间列表，判断是否到了下一行歌词的时间
 			if now_lyc_time - 0.1 <= time_unit <= now_lyc_time + 0.1:
 				highlight_lrc_index = lrc_time.index(time_unit) - 1
+				if branch_lrc_text is False:
+					highlight_lrc_index += 1
 				if lrc_time[lrc_time.index(time_unit)] == time_unit:
 					roll_two_lrc_line = True
 				if highlight_lrc_index < 0:
@@ -702,22 +792,25 @@ while True:
 	# 				lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
 	# 		except IndexError:
 	# 			lrc_line_index -= 1
-	if sea_music_list is False and sea_music_film is False and music_is_pure_music is False:
-		if len(music_lrc_line) <= 14:
-			line_index = 13 - highlight_lrc_index
-		else:
-			line_index = 13 - (highlight_lrc_index - lrc_line_index)
-			if line_index < 0 or line_index > 13:
-				line_index = 100
-		pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
-	elif sea_music_list is True and sea_music_film is False:
-		if len(music_list) <= 14:
-			line_index = 13 - music_list_index
-		else:
-			line_index = 13 - (music_list_index - lrc_line_index)
-			if line_index < 0 or line_index > 13:
-				line_index = 100
-		pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+	if sea_setting_film is False and show_highlight is True:
+		if sea_music_list is False and sea_music_film is False and music_is_pure_music is False:
+			if len(music_lrc_line) <= 14:
+				line_index = 13 - highlight_lrc_index
+			else:
+				line_index = 13 - (highlight_lrc_index - lrc_line_index)
+				if line_index < 0 or line_index > 13:
+					line_index = 100
+			pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+		elif sea_music_list is True and sea_music_film is False:
+			if len(music_list) <= 14:
+				line_index = 13 - music_list_index
+			else:
+				line_index = 13 - (music_list_index - lrc_line_index)
+				if line_index < 0 or line_index > 13:
+					line_index = 100
+			pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+	else:
+		pass
 	for unit in lyrics:
 		unit.draw()
 	if len(music_arties.get_attribute().get("msg")) > 70:
@@ -726,7 +819,7 @@ while True:
 	music_name.draw()
 
 	# 以下代码打印窗口上的元素，包括按钮，文本之类的对象
-	if sea_music_film is True and music_key_image is not None:
+	if sea_music_film is True and music_key_image is not None and sea_setting_film is False:
 		screen.blit(music_key_image, (10, 90))
 	if pg_wind_music_index < 1:
 		pg_wind_music_index = 3
@@ -740,6 +833,11 @@ while True:
 		if unit.check_button is False:
 			unit.set_msg_color(THECOLORS.get("grey75"))
 		unit.draw()
+	if sea_setting_film is True:
+		for unit in set_button:
+			if unit.check_button is False:
+				unit.set_msg_color(THECOLORS.get("grey75"))
+			unit.draw()
 	if 0 <= music_list_index < len(music_list):  # 显示音乐的名称
 		if len(str(music_list[music_list_index])) <= 65:
 			music_name_text.set_msg("文件名称 -> " + str(music_list[music_list_index]))

@@ -154,7 +154,65 @@ class MidSuperText(SuperText):
 		self.img_text = self._font.render(self.msg, True, self.color, (0, 0, 0)).convert()
 		self.img_text_rect = self.img_text.get_rect()
 		self.img_text_rect.center = self.rect.center
-
+		
 	def draw(self):
 		"""绘制文本"""
 		self.screen.blit(self.img_text, self.img_text_rect)
+		
+class FreeMsg():
+	def __init__(self, screen, coordinates, rect, msg, font, size, color, highlight, dsm):
+		self.screen = screen
+		self.coordinates = coordinates
+		self.rect = rect
+		self.msg = msg
+		self.font = font
+		self.size = size
+		self.color = color
+		self.highlight = highlight
+		self.dsm = dsm
+		self._font = pygame.font.Font(font, 20)
+		self.img_text = self._font.render(self.msg, True, color)
+		self.write = False
+		self.text = ""
+		self.rect_pos = [self.coordinates, (self.coordinates[0] + self.rect[0], self.coordinates[1]),
+		                 (), (self.coordinates[0] + self.rect[0], self.coordinates[1] + self.rect[1])]
+		
+	def get_coordinates(self):
+		return self.rect_pos
+		
+	def write_start(self):
+		self.write = True
+		
+	def write(self, text):
+		self.msg = self.msg + text
+		self.img_text = self._font.render(self.msg, True, self.color)
+		
+	def write_end(self):
+		self.write = False
+		
+	def write_type(self):
+		return self.write
+		
+	def check(self, text):
+		if self.write is True:
+			return False
+		else:
+			if self.msg == text:
+				return True
+			else:
+				return False
+			
+	def delete(self):
+		if self.write is not True:
+			self.text = ""
+			self.img_text = self._font.render("", True, self.color)
+			return True
+		else:
+			return False
+		
+	def draw(self):
+		self.screen.blit(self.img_text, (self.coordinates[0], self.coordinates[1]))
+		if self.write is True:
+			pygame.draw.rect(self.screen, self.highlight, (self.coordinates[0], self.coordinates[1],
+			                                               self.rect[0], self.rect[1]))
+	
