@@ -4,18 +4,29 @@ freebird music player -> main
 Copyright 2023 freebird
 """
 
-import os
-import sys
-import time
-import pygame
+from os import listdir, remove, path
+from time import localtime, time
+from sys import exit as sys_exit
+from pygame.constants import (USEREVENT,
+                    QUIT, WINDOWEXPOSED, MOUSEWHEEL, MOUSEBUTTONDOWN, KEYDOWN,
+                    K_b, K_l, K_r, K_h, K_n, K_f, K_s, K_SPACE, WINDOWLEAVE)
+from pygame.draw import rect as draw_rect
+from pygame.transform import smoothscale
+from pygame.base import error as pygame_error
+from pygame.base import quit, init
+from pygame.event import get as event_get
+from pygame.display import set_caption, set_icon, set_mode, flip
+from pygame.image import load as image_load
+from pygame.mouse import get_pos as mouse_get_pos
+from pygame import time as pygame_time
 from pygame.mixer import music
-from pygame.mixer import init as mixer_init  # 用于初始化音乐模块
-from pygame.colordict import THECOLORS       # pygame的颜色列表
+from pygame.mixer import init as mixer_init
+from pygame.colordict import THECOLORS
 from pygame.font import Font
 from freepygame import freetext, freebutton
 from _io import text_encoding
 # from PIL import Image, ImageFilter
-import mutagen
+from mutagen import File as mutagen_File
 
 text_encoding("utf-8")
 
@@ -34,28 +45,28 @@ music_lrc_path_set = str(setting_list[2][18:len(setting_list[2]) - 2])
 setting.close()
 
 # 初始化
-pygame.init()
+init()
 mixer_init(frequency = 44100)  # 音乐模块的初始化
 frame_number = 60
-pygame.display.set_caption("freebird music player")
-pygame.display.set_icon(pygame.image.load("assets\\freebird_music.ico"))
+set_caption("freebird music player")
+set_icon(image_load("assets\\freebird_music.ico"))
 # text_font = Font("assets\\AiNiPoSui-ShengGuoWanMei-2.ttf", 20)
 text_font = Font("assets\\ZhiyongWrite-2.ttf", 22)
 lrc_font = Font("assets\\simhei.ttf", 20)
-pg_wind_music1 = pygame.image.load("assets\\wind_music.JPG")
-pg_wind_music2 = pygame.image.load("assets\\wind_music2.JPG")
-pg_wind_music3 = pygame.image.load("assets\\wind_music3.jpg")
-pg_wind_music1_r = pygame.image.load("assets\\wind_music_r.JPG")
-pg_wind_music2_r = pygame.image.load("assets\\wind_music2_r.JPG")
-pg_wind_music3_r = pygame.image.load("assets\\wind_music3_r.jpg")
+pg_wind_music1 = image_load("assets\\wind_music.JPG")
+pg_wind_music2 = image_load("assets\\wind_music2.JPG")
+pg_wind_music3 = image_load("assets\\wind_music3.jpg")
+pg_wind_music1_r = image_load("assets\\wind_music_r.JPG")
+pg_wind_music2_r = image_load("assets\\wind_music2_r.JPG")
+pg_wind_music3_r = image_load("assets\\wind_music3_r.jpg")
 pg_wind_music = [pg_wind_music1, pg_wind_music2, pg_wind_music3]
 pg_wind_music_r = [pg_wind_music1_r, pg_wind_music2_r, pg_wind_music3_r]
 pg_wind_color = [(0, 105, 70), (0, 20, 105), (137, 30, 0)]
 pg_wind_music_index = 3
-screen = pygame.display.set_mode(display_size)
+screen = set_mode(display_size)
 screen.blit(pg_wind_music[2], (0, 0))
-clock = pygame.time.Clock()
-MUSICOVER = pygame.USEREVENT  # 当音乐播放完成时的信号
+clock = pygame_time.Clock()
+MUSICOVER = USEREVENT  # 当音乐播放完成时的信号
 music.set_endevent(MUSICOVER)
 
 # 需要显示的可交互的元素
@@ -75,7 +86,7 @@ freebird_text = freetext.SuperText(screen, (display_size[0] - 145, display_size[
                                    font = "assets\\FeiXiangDeNiaoErBeiChongChi1-2.ttf", color = THECOLORS.get("grey100"), dsm = dsm)
 pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Wishing well", text_font,
                                    color = THECOLORS.get("grey100"), dsm = dsm)
-version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.5", "assets\\simhei.ttf",
+version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.2.6", "assets\\simhei.ttf",
                                   size = 15, color = THECOLORS.get("grey95"), dsm = dsm)
 music_name = freetext.SuperText(screen, (5, 42), "《》", "assets\\simhei.ttf", size = 19,
                                 color = THECOLORS.get("grey100"), dsm = dsm)
@@ -124,16 +135,16 @@ for unit in button:
 
 # 获取音乐(歌词)文件夹中的文件列表
 if music_path_set == "":
-	music_list = os.listdir(path = 'music')
+	music_list = listdir(path = 'music')
 	music_path = "music\\"
 else:
-	music_list = os.listdir(path = music_path_set)
+	music_list = listdir(path = music_path_set)
 	music_path = music_path_set + "\\"
 if music_lrc_path_set == "":
-	music_lrc_list = os.listdir(path = 'music_lrc')
+	music_lrc_list = listdir(path = 'music_lrc')
 	music_lrc_path = "music_lrc\\"
 else:
-	music_lrc_list = os.listdir(music_lrc_path_set)
+	music_lrc_list = listdir(music_lrc_path_set)
 	music_lrc_path = music_lrc_path_set + "\\"
 if use_setting_film is True:
 	try:
@@ -187,7 +198,7 @@ use_music_key_lrc = False      # 是否使用标签中的歌词
 music_is_pure_music = False    # 音乐是纯音乐或没有歌词
 branch_lrc_text = False        # 是否进行歌词分行
 write_msg = False              # 是否写入输入框
-use_keyboard_to_set = False    # 是否使用键盘设置
+use_keyboard_to_set = True     # 是否使用键盘设置
 finally_image = None           # 模糊图像
 
 # 音乐播放的准备
@@ -218,41 +229,33 @@ def _init_music_argument():
 # 主循环
 while True:
 	# 设置状态栏
-	event_text.set_msg("现在时间：" + str(time.localtime().tm_year) + "年 " + str(time.localtime().tm_mon) + "月 " +
-	                   str(time.localtime().tm_mday) + "日 " + str(time.localtime().tm_hour) + "时 " +
-					   str(time.localtime().tm_min) + "分 " + str(time.localtime().tm_sec) + "秒   " +
+	event_text.set_msg("现在时间：" + str(localtime().tm_year) + "年 " + str(localtime().tm_mon) + "月 " +
+	                   str(localtime().tm_mday) + "日 " + str(localtime().tm_hour) + "时 " +
+					   str(localtime().tm_min) + "分 " + str(localtime().tm_sec) + "秒   " +
 					   "当前帧速率 " + str(int(clock.get_fps())) + "     Copyright 2023 freebird")
 	# 事件和信号遍历
-	for event in pygame.event.get():
+	for event in event_get():
 		_user_use_MOUSEWHEEL = False
 		if event.type == MUSICOVER:
 			music_list_index += 1   # 一曲播放完，更新文件列表索引
 			music_is_load = False
 			music_player = False
-		if event.type == pygame.QUIT:
-			os.remove("music_image_film.music_image")
+		if event.type == QUIT:
+			remove("music_image_film.music_image")
 			music.stop()
-			pygame.quit()           # 退出pygame引擎
-			sys.exit()              # 退出程序
-		elif event.type == pygame.WINDOWEXPOSED and music_player is False:
+			quit()           # 退出pygame引擎
+			sys_exit()
+		elif event.type == WINDOWEXPOSED and music_player is False:
 			music.pause()
-		elif event.type == pygame.MOUSEWHEEL:
+		elif event.type == MOUSEWHEEL:
 			if event.dict.get("y") >= 0:     # 当用户使用鼠标滚轮时
 				lrc_line_index -= 1          # 歌词向上滚动
 			elif event.dict.get("y") <= 0:
 				lrc_line_index += 1          # 歌词向下滚动
 			move_text = True
 			_user_use_MOUSEWHEEL = True
-		# elif event.type == pygame.MOUSEMOTION and 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
-		# 		42 < pygame.mouse.get_pos()[1] < display_size[1] - 93 and _user_use_MOUSEWHEEL is False:
-		# 	if event.dict.get("touch") is True:
-		# 		if event.dict.get("y") >= 0:
-		# 			lrc_line_index -= 1
-		# 		elif event.dict.get("y") <= 0:
-		# 			lrc_line_index += 1
-		# 		move_text = True
-		elif 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
-				5 < pygame.mouse.get_pos()[1] < 40 and event.type == pygame.MOUSEBUTTONDOWN:
+		elif 5 < mouse_get_pos()[0] < display_size[0] - 85 and \
+				5 < mouse_get_pos()[1] < 40 and event.type == MOUSEBUTTONDOWN:
 			if sea_music_list is False and sea_music_film is False and sea_setting_film is False:      # 判断用户是否点击了歌曲文件名
 				sea_music_list = True
 				sea_music_film = False
@@ -270,26 +273,26 @@ while True:
 				sea_music_film = False
 				sea_setting_film = False
 			move_text = True
-		elif event.type == pygame.KEYDOWN and use_keyboard_to_set is True:   # 键盘事件
-			if event.key == pygame.K_b:
+		elif event.type == KEYDOWN and use_keyboard_to_set is True:   # 键盘事件
+			if event.key == K_b:
 				pg_wind_music_index -= 1     # 切换背景
-			elif event.key == pygame.K_l:
+			elif event.key == K_l:
 				if show_highlight is True:
 					show_highlight = False
 				else:
 					show_highlight = True
-			elif event.key == pygame.K_r:
+			elif event.key == K_r:
 				if show_lyrics_roll is True:
 					show_lyrics_roll = False
 				else:
 					show_lyrics_roll = True
-			elif event.key == pygame.K_h:
+			elif event.key == K_h:
 				lrc_line_index -= 1
 				move_text = True
-			elif event.key == pygame.K_n:
+			elif event.key == K_n:
 				lrc_line_index += 1
 				move_text = True
-			elif event.key == pygame.K_f:
+			elif event.key == K_f:
 				if branch_lrc_text is True:
 					branch_lrc_text = False
 				else:
@@ -297,13 +300,13 @@ while True:
 				music_player = True
 				music_is_load = True
 				_init_music_argument()
-			elif event.key == pygame.K_s:
+			elif event.key == K_s:
 				if sea_setting_film is False:
 					sea_setting_film = True
 				else:
 					sea_setting_film = False
 				move_text = True
-			elif event.key == pygame.K_SPACE:
+			elif event.key == K_SPACE:
 				if button_go.display_button is False:  # 播放和暂停时的按钮样式
 					button_go.set_msg("->")
 					button_go.display_button = True
@@ -323,18 +326,18 @@ while True:
 		# 以下调用了freebutton.position_button()的都是按钮
 		# 注意，所有以下代码中按钮的操作都只是改变样貌或控制音乐的暂停和再次播放！
 		# 对于音乐对象本身的操作（如切换音乐等）在时间遍历的下面，这里只是再次发出信号
-		elif freebutton.position_button(button_exit, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_exit, mouse_get_pos()) is True:
 			button_exit.set_msg_color(THECOLORS.get("grey95"))
 			button_exit.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				os.remove("music_image_film.music_image")
+			if event.type == MOUSEBUTTONDOWN:
+				remove("music_image_film.music_image")
 				music.stop()
-				pygame.quit()
-				sys.exit()
-		elif freebutton.position_button(button_go, pygame.mouse.get_pos()) is True:
+				quit()
+				sys_exit()
+		elif freebutton.position_button(button_go, mouse_get_pos()) is True:
 			button_go.set_msg_color(THECOLORS.get("grey95"))
 			button_go.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN:
 				if button_go.display_button is False:  # 播放和暂停时的按钮样式
 					button_go.set_msg("->")
 					button_go.display_button = True
@@ -350,52 +353,52 @@ while True:
 					button_go.display_button = False
 					music_push_load = True
 					music.pause()
-		elif freebutton.position_button(button_adva, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_adva, mouse_get_pos()) is True:
 			button_adva.set_msg_color(THECOLORS.get("grey95"))
 			button_adva.check_button = True
 			# if event.type == pygame.MOUSEBUTTONDOWN:  # 按下快进键
 			# 	music_pos = music.get_pos() + 5000  # 将播放时间后移5秒
 			# 	music.stop()
 			# 	music.play(start = music_pos)
-		elif freebutton.position_button(button_back, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_back, mouse_get_pos()) is True:
 			button_back.set_msg_color(THECOLORS.get("grey95"))
 			button_back.check_button = True
 			# if event.type == pygame.MOUSEBUTTONDOWN:  # 快退
 			# 	music_pos = music.get_pos() - 5000
 			# 	music.stop()
 			# 	music.play(start = music_pos)
-		elif freebutton.position_button(button_next, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_next, mouse_get_pos()) is True:
 			button_next.set_msg_color(THECOLORS.get("grey95"))
 			button_next.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN:
 				music.pause()
 				music_player = False
 				music_is_load = False
 				music_list_index += 1
 				move_text = True
-		elif freebutton.position_button(button_last, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_last, mouse_get_pos()) is True:
 			button_last.set_msg_color(THECOLORS.get("grey95"))
 			button_last.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN:
 				music.pause()
 				music_player = False
 				music_is_load = False
 				music_list_index -= 1
 				move_text = True
-		elif freebutton.position_button(button_vol_add, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_vol_add, mouse_get_pos()) is True:
 			button_vol_add.set_msg_color(THECOLORS.get("grey95"))
 			button_vol_add.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN:
 				music.set_volume(music.get_volume() + 0.05)   # 音量加
-		elif freebutton.position_button(button_vol_min, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_vol_min, mouse_get_pos()) is True:
 			button_vol_min.set_msg_color(THECOLORS.get("grey95"))
 			button_vol_min.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN:
 				music.set_volume(music.get_volume() - 0.05)   # 音量
-		elif freebutton.position_button(button_loop, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_loop, mouse_get_pos()) is True:
 			button_loop.set_msg_color(THECOLORS.get("grey95"))
 			button_loop.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN:
 				if loop_music is True and button_loop.display_button is True:  # 循环切换循环按钮的样式
 					button_loop.set_msg("N")
 					loop_music = False
@@ -406,37 +409,37 @@ while True:
 				elif loop_music is True and button_loop.display_button is False:
 					button_loop.set_msg("OL")
 					button_loop.display_button = True
-		elif freebutton.position_button(msg_music_path, pygame.mouse.get_pos()) is True:
-			if event.type == pygame.MOUSEBUTTONDOWN:
+		elif freebutton.position_button(msg_music_path, mouse_get_pos()) is True:
+			if event.type == MOUSEBUTTONDOWN:
 				if msg_music_path.write_type() is False:
 					msg_music_path.write_start()
 				else:
 					msg_music_path.write_end()
-		elif freebutton.position_button(button_set_highlight, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_set_highlight, mouse_get_pos()) is True:
 			button_set_highlight.set_msg_color(THECOLORS.get("grey95"))
 			button_set_highlight.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN and sea_setting_film is True:
 				if show_highlight is True:
 					show_highlight = False
 				else:
 					show_highlight = True
-		elif freebutton.position_button(button_set_Keyboard, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_set_Keyboard, mouse_get_pos()) is True:
 			button_set_Keyboard.set_msg_color(THECOLORS.get("grey95"))
 			button_set_Keyboard.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN and sea_setting_film is True:
 				if use_keyboard_to_set is True:
 					use_keyboard_to_set = False
 				else:
 					use_keyboard_to_set = True
-		elif freebutton.position_button(button_set_image, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_set_image, mouse_get_pos()) is True:
 			button_set_image.set_msg_color(THECOLORS.get("grey95"))
 			button_set_image.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN and sea_setting_film is True:
 				pg_wind_music_index -= 1
-		elif freebutton.position_button(button_set_branch, pygame.mouse.get_pos()) is True:
+		elif freebutton.position_button(button_set_branch, mouse_get_pos()) is True:
 			button_set_branch.set_msg_color(THECOLORS.get("grey95"))
 			button_set_branch.check_button = True
-			if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.type == MOUSEBUTTONDOWN and sea_setting_film is True:
 				if branch_lrc_text is True:
 					branch_lrc_text = False
 				else:
@@ -449,7 +452,7 @@ while True:
 				unit.check_button = False  # 这里的check_button是用于控制按钮是否被按下的，上面的代码中也有
 			for unit in set_button:
 				unit.check_button = False
-		if event.type == pygame.WINDOWLEAVE:  # 当光标离开窗口后，坐标依然停留在离开前的位置，可能造成按钮一直被按下的假象
+		if event.type == WINDOWLEAVE:  # 当光标离开窗口后，坐标依然停留在离开前的位置，可能造成按钮一直被按下的假象
 			for unit in button:               # 所以这里在设置一次
 				unit.check_button = False
 			for unit in set_button:
@@ -488,7 +491,7 @@ while True:
 			_init_music_argument()
 		if music_push_load is True:
 			music.pause()
-	except pygame.error:
+	except pygame_error:
 		music_list_index += 1
 		
 	# 获取标签信息
@@ -497,7 +500,7 @@ while True:
 		music_key_lrc = ""
 		music_key_introduction = ""
 		use_music_key_lrc = False
-		music_key = mutagen.File(music_path + music_list[music_list_index])
+		music_key = mutagen_File(music_path + music_list[music_list_index])
 		music_key_name = music_key.get("TIT2")     # 歌曲名
 		music_key_arties = music_key.get("TPE1")   # 艺术家名
 		music_key_albums = music_key.get("TALB")   # 专辑名
@@ -529,15 +532,15 @@ while True:
 		music_image_film.write(_film)
 		music_image_film.close()
 		try:
-			music_key_image = pygame.image.load(os.path.join('music_image_film.music_image'))
-		except pygame.error:
-			music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg'))
+			music_key_image = image_load(path.join('music_image_film.music_image'))
+		except pygame_error:
+			music_key_image = image_load(path.join('assets/anto_music_image.jpg'))
 		finally:
 			try:
-				music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+				music_key_image = smoothscale(music_key_image, (260, 260))
 			except ValueError:
-				music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg'))
-				music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+				music_key_image = image_load(path.join('assets/anto_music_image.jpg'))
+				music_key_image = smoothscale(music_key_image, (260, 260))
 		
 		# create the original pygame surface
 		# c_size, c_image_mode, c_raw = (260, 260), 'RGBA', _film
@@ -564,7 +567,7 @@ while True:
 						lyrics[int(lyrics_len / 2)].set_msg("未找到歌词！")
 						music_lrc_line = []
 				except (UnicodeEncodeError, PermissionError):
-					print(str(format(time.time(), ".5f")) + "   ERROR : UnicodeEncodeError or PermissionError\n")
+					print(str(format(time(), ".5f")) + "   ERROR : UnicodeEncodeError or PermissionError\n")
 		else:
 			music_lrc_is_load = True
 		music_lrc_draw = []
@@ -739,7 +742,7 @@ while True:
 	move_text = False
 	
 	# 自动翻动歌词
-	now_time = time.time()
+	now_time = time()
 	now_lyc_time = float(music.get_pos() / 1000)
 	roll_two_lrc_line = False
 	if sea_music_list is False and music_lrc_is_read is True and show_highlight is True:
@@ -771,27 +774,6 @@ while True:
 		music_lrc_is_roll = False
 	
 	# 打印歌词
-	# if sea_music_list is False and sea_music_film is False and move_text is True:
-	# 	if music_lrc_line_len - 4 <= lyrics_len:
-	# 		for write_index in range(0, music_lrc_line_len - 4):
-	# 			screen.blit(new_lyrics[lyrics_len - write_index - 1], (5, 220))
-	# 	else:
-	# 		try:
-	# 			for write_index in range(0, lyrics_len):
-	# 				screen.blit(new_lyrics[lyrics_len - write_index - 1], (5, 220))
-	# 		except IndexError:
-	# 			lrc_line_index -= 1
-	# elif sea_music_list is True and move_text is True:
-	# 	lyrics[int(lyrics_len / 2)].set_msg("")
-	# 	if len(music_list) <= lyrics_len:
-	# 		for write_index in range(0, len(music_list)):
-	# 			lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index]))
-	# 	else:
-	# 		try:
-	# 			for write_index in range(0, lyrics_len):
-	# 				lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
-	# 		except IndexError:
-	# 			lrc_line_index -= 1
 	if sea_setting_film is False and show_highlight is True:
 		if sea_music_list is False and sea_music_film is False and music_is_pure_music is False:
 			if len(music_lrc_line) <= 14:
@@ -800,7 +782,7 @@ while True:
 				line_index = 13 - (highlight_lrc_index - lrc_line_index)
 				if line_index < 0 or line_index > 13:
 					line_index = 100
-			pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+			draw_rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
 		elif sea_music_list is True and sea_music_film is False:
 			if len(music_list) <= 14:
 				line_index = 13 - music_list_index
@@ -808,8 +790,9 @@ while True:
 				line_index = 13 - (music_list_index - lrc_line_index)
 				if line_index < 0 or line_index > 13:
 					line_index = 100
-			pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+			draw_rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
 	else:
+		# 不打引
 		pass
 	for unit in lyrics:
 		unit.draw()
@@ -849,7 +832,7 @@ while True:
 		unit.draw()
 
 	# 窗口刷新，准备再次遍历事件
-	pygame.display.flip()
+	flip()
 	if pg_wind_music_index < 1:
 		pg_wind_music_index = 3
 	if pg_wind_music_index == 1:
