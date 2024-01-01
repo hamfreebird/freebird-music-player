@@ -4,7 +4,12 @@ import pygame.draw
 
 from freepygame.freecircle import FreeCircle
 
-def position_button(button, pos: tuple[int, int]) -> bool:
+def position_button(rect: tuple[int, int, int, int] | list[int, int, int, int], pos: tuple[int, int]):
+	if rect[0] <= pos[0] <= rect[1] and rect[2] <= pos[1] <= rect[3]:
+		return True
+	return False
+
+def position_button_class(button, pos: tuple[int, int]):
 	"""判断给定的坐标是否和按钮对象的坐标重合。
 	注意，本函数对圆型按钮（CircleButton）类的坐标使用的是外切矩形的坐标！"""
 	if (button.get_coordinates()[1][0] >= pos[0] >= button.get_coordinates()[0][0] and
@@ -115,7 +120,8 @@ class FreeButton():
 		self.border[0] = width
 		
 	def set_msg_tran(self, msg_tran):
-		if msg_tran is True: self.msg_img.colorkeys(self.button_color)
+		if msg_tran is True:
+			self.msg_img.colorkeys(self.button_color)
 		self.msg_tran = msg_tran
 
 	def draw(self):
@@ -126,7 +132,8 @@ class FreeButton():
 							 (self.coordinates[0] + self.width, self.coordinates[1] + self.height), self.line[0])
 			pygame.draw.line(self.screen, self.line[1], (self.coordinates[0] + self.width, self.coordinates[1]),
 							 (self.coordinates[0], self.coordinates[1] + self.height), self.line[0])
-		if self.msg_tran is True: self.msg_img.set_colorkey(self.button_color)
+		if self.msg_tran is True:
+			self.msg_img.set_colorkey(self.button_color)
 		self.screen.blit(self.msg_img, self.msg_img_rect)
 		if self.draw_border is True:
 			pygame.draw.rect(self.screen, self.border[1], (self.coordinates[0], self.coordinates[1],
