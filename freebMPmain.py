@@ -20,6 +20,8 @@ from _io import text_encoding
 import mutagen
 # import cv2
 # import numpy
+# import heartrate
+# heartrate.trace(browser=True)
 
 text_encoding("utf-8")
 
@@ -268,6 +270,7 @@ music_key_arties = ""          # 艺术家名标签
 music_key_albums = ""          # 专辑名标签
 music_key_image = None         # 专辑封面标签
 music_key_lrc = ""             # 歌词标签
+music_key_introduction = ""    # 歌曲简介标签
 music_key_sample_rate = 0      # 采样速率
 music_key_channels = 0         # 声道信息
 music_kry_length = 0           # 音乐长度
@@ -298,7 +301,7 @@ infor_dict = pickle.load(save_film)
 print(infor_dict)
 save_film.close()
 	
-def _init_music_argument():
+def init_music_argument():
 	global music_lrc_is_load, music_lrc_is_read, music_key_is_load, music_lrc_is_roll, \
 		music_key_is_read, music_is_pure_music, move_text
 	music_lrc_is_load = False
@@ -309,7 +312,7 @@ def _init_music_argument():
 	music_is_pure_music = False
 	move_text = True
 	
-def _load_music(_music_list_index):
+def load_music(_music_list_index):
 	try:
 		music.load(music_path + music_list[_music_list_index])
 	except (FileNotFoundError, pygame.error):
@@ -318,6 +321,350 @@ def _load_music(_music_list_index):
 		except pygame.error:
 			_music_list_index += 1
 	return _music_list_index
+
+def get_the_tag_information():
+	global music_key_introduction, music_key_image, music_lrc_line, music_key_lrc, use_music_key_lrc
+	
+	music_key_introduction = ""
+	use_music_key_lrc = False
+	try:
+		music_key = mutagen.File(music_path + music_list[music_list_index])
+	except mutagen.MutagenError:
+		music_key = mutagen.File(music_list[music_list_index])
+	
+	get_information_from_tag(music_key)
+	
+	_bit_film, music_key_lrc = get_image_and_lrc_from_tag(music_key)
+	
+	music_image_film = open("music_image_film.music_image", "wb+")
+	music_image_film.write(_bit_film)
+	music_image_film.close()
+	# img = cv2.imread('music_image_film.music_image')
+	# blur_image = cv2.GaussianBlur(img, (5, 5), 3)
+	try:
+		music_key_image = pygame.image.load(os.path.join('music_image_film.music_image')).convert()
+	except pygame.error:
+		music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg')).convert()
+	finally:
+		try:
+			music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+		except ValueError:
+			music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg')).convert()
+			music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+	# create the original pygame surface
+	# c_size, c_image_mode, c_raw = (260, 260), 'RGBA', _film
+	# surf = pygame.image.fromstring(c_raw, c_size, c_image_mode)
+	# pil_blured = Image.fromstring("RGBA", c_size, c_raw).filter(ImageFilter.GaussianBlur(radius=6))
+	# finally_image = pygame.image.fromstring(pil_blured.tostring("raw", c_image_mode), c_size, c_image_mode)
+	
+def get_information_from_tag(music_key):
+	global music_key_name, music_key_arties, music_key_albums, music_key_sample_rate, \
+		music_key_channels, music_kry_length
+	music_key_name = music_key.get("TIT2")  # 歌曲名
+	music_key_arties = music_key.get("TPE1")  # 艺术家名
+	music_key_albums = music_key.get("TALB")  # 专辑名
+	music_key_sample_rate = music_key.info.sample_rate
+	music_key_channels = music_key.info.channels
+	music_kry_length = music_key.info.length
+	
+def get_image_and_lrc_from_tag(music_key):
+	global music_key_lrc, use_music_key_lrc, music_lrc_line
+	_bit_film = b"0"
+	music_key_lrc = ""
+	for index in range(0, len(music_key.values())):
+		try:
+			_bit_film = music_key.values()[index].data
+		except AttributeError:
+			try:
+				_lrc = music_key.values()[index].text
+				if _lrc[0] == "[" and _lrc[3] == ":":
+					music_key_lrc = music_key.values()[index].text
+					use_music_key_lrc = True
+			except (AttributeError, IndexError, TypeError):
+				continue
+	if use_music_key_lrc is True:
+		line_str = ""
+		music_lrc_line = []
+		for index in range(0, len(music_key_lrc)):
+			if music_key_lrc[index] != "\r" and music_key_lrc[index] != "\n":
+				line_str += music_key_lrc[index]
+			elif music_key_lrc[index] == "\r":
+				line_str += "\n"
+				music_lrc_line.append(line_str)
+				line_str = ""
+	return _bit_film, music_key_lrc
+
+def get_lrc_from_lrc_film(_lyrics_len):
+	global music_lrc_text, music_lrc_is_load, music_lrc_line, music_lrc_draw, lrc_line_index
+	if use_music_key_lrc is False:
+		for lrc_unit in music_lrc_list:
+			try:
+				if lrc_unit[:len(lrc_unit) - 4] == music_list[music_list_index][:len(music_list[music_list_index]) - 4]:
+					try:
+						music_lrc_text = open(music_lrc_path + lrc_unit, "r+", encoding="utf-8")
+						music_lrc_is_load = True
+					except SystemError:
+						music_lrc_is_load = False
+						lyrics[int(_lyrics_len / 2)].set_msg("找到歌词文件但载入失败！")
+						music_lrc_line = []
+				else:
+					music_lrc_line = []
+			except (UnicodeEncodeError, PermissionError):
+				print(str(format(time.time(), ".5f")) + "   ERROR : UnicodeEncodeError or PermissionError\n")
+	else:
+		music_lrc_is_load = True
+	music_lrc_draw = []
+	lrc_line_index = 0
+	
+def use_tag_information_as_a_song_message():
+	global music_key_is_read, music_lrc_is_load
+	if music_key_name is not None:
+		music_name.set_msg(str(music_key_name))
+	if music_key_arties is not None and music_key_albums is not None:
+		music_arties.set_msg("音乐家：" + str(music_key_arties) + "  专辑：" + str(music_key_albums))
+	else:
+		music_arties.set_msg("音乐家：未知  专辑：未知")
+	music_key_is_read = True
+	music_lrc_is_load = True
+	
+def use_filename_as_a_song_message():
+	global music_key_is_read
+	try:
+		music_name_arties = music_list[music_list_index][:len(music_list[music_list_index]) - 4].split('-', 1)
+		music_name.set_msg(music_name_arties[1][1:])
+		music_arties.set_msg("音乐家：" + music_name_arties[0][:-1] + "  专辑：未知")
+	except IndexError:
+		music_name.set_msg("未知曲名")
+		music_arties.set_msg("音乐家：未知  专辑：未知")
+	music_key_is_read = True
+	
+def read_the_lyrics():
+	global lyrics, music_lrc_line, music_lrc_draw, music_lrc_is_read, music_is_pure_music, \
+		music_lrc_line_len, lrc_time, new_lyrics
+	for _unit in lyrics:
+		_unit.set_msg("")
+	
+	init_music_lrc_line()
+	music_lrc_is_read = True
+	
+	add_music_text_information()
+	
+	_each_line_index = lyrics_len - 1
+	_music_lrc_line_len_index = 0
+	lrc_time = []  # 每行歌词的时间
+	new_lyrics = []  # 每行歌词渲染后的图像
+	
+	if branch_lrc_text is True:
+		set_branch_lrc_text(_each_line_index, _music_lrc_line_len_index)
+	else:
+		set_ordinary_lrc_text(_each_line_index, _music_lrc_line_len_index)
+	music_lrc_line_len = len(music_lrc_line)
+	
+def init_music_lrc_line():
+	global music_lrc_line, music_lrc_text
+	if use_music_key_lrc is False:
+		music_lrc_line = []  # 用于存放歌词的每一行
+		try:
+			for each_line in music_lrc_text:
+				music_lrc_draw.append(False)
+				music_lrc_line.append(each_line)
+		except ValueError:
+			pass
+	else:
+		for _ in music_lrc_line:
+			music_lrc_draw.append(False)
+	if type(music_lrc_text) is not str:
+		# noinspection PyUnresolvedReferences
+		music_lrc_text.close()
+		
+def add_music_text_information():
+	global music_is_pure_music, music_lrc_line_len
+	try:
+		if str(music_lrc_line[1][1:4]) == "ti:":
+			music_name.set_msg(str(music_lrc_line[1][4:len(music_lrc_line[1]) - 2]))
+		if str(music_lrc_line[2][1:4]) == "ar:" and str(music_lrc_line[3][1:4]) == "al:":
+			music_arties.set_msg("音乐家：" + str(music_lrc_line[2][4:len(music_lrc_line[2]) - 2]) +
+			                     "  专辑：" + str(music_lrc_line[3][4:len(music_lrc_line[3]) - 2]))
+		if str(music_lrc_line[4][1:4]) == "by:":
+			music_lrc_line.pop(4)
+	except IndexError:
+		try:
+			music_name_arties = music_list[music_list_index][:len(music_list[music_list_index]) - 4].split('-', 1)
+			music_name.set_msg(music_name_arties[1][1:])
+			music_arties.set_msg("音乐家：" + music_name_arties[0][:-1] + "  专辑：未知")
+		except IndexError:
+			music_name.set_msg("未知曲名")
+			music_arties.set_msg("音乐家：未知  专辑：未知")
+		music_is_pure_music = True
+	finally:
+		music_lrc_line_len = len(music_lrc_line)
+		
+def set_branch_lrc_text(each_line_index, music_lrc_line_len_index):
+	index_offset_quantity = 0
+	for each_index in range(0, len(music_lrc_line)):
+		_this_line_time = 0
+		new_line = music_lrc_line[each_index + index_offset_quantity].split(" / ")
+		if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
+			break
+		try:
+			_this_line_time = int(new_line[0][1:3]) * 60 + int(new_line[0][4:6]) + int(new_line[0][7:9]) / 100
+		except (TypeError, ValueError):
+			_this_line_time = 0
+		if len(new_line) == 2:
+			try:
+				lrc_time.append(_this_line_time)
+				music_lrc_line[each_index + index_offset_quantity] = new_line[0] + " / "
+				lrc_time.append(_this_line_time)
+				music_lrc_line.insert(each_index + index_offset_quantity + 1, "[00:00:00]" + new_line[1])
+				music_lrc_line_len_index += 2
+			except (IndexError, TypeError, ValueError):
+				music_lrc_line_len_index += 1
+		else:
+			try:
+				# 将每行歌词的时间导入时间列表
+				lrc_time.append(_this_line_time)
+				music_lrc_line_len_index += 1
+			except (IndexError, TypeError, ValueError):
+				music_lrc_line_len_index += 1
+		index_offset_quantity += len(new_line) - 1
+	for index in range(0, len(lrc_time)):
+		try:
+			if lrc_time[index] == 0:
+				lrc_time.pop(index)
+		except IndexError:
+			break
+	return music_lrc_line_len_index
+			
+def set_ordinary_lrc_text(each_line_index, music_lrc_line_len_index):
+	for each_line in music_lrc_line:
+		if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
+			break
+		try:
+			# 将每行歌词的时间导入时间列表
+			lrc_time.append(int(each_line[1:3]) * 60 + int(each_line[4:6]) + int(each_line[7:9]) / 100)
+			music_lrc_line_len_index += 1
+		except (IndexError, TypeError, ValueError):
+			music_lrc_line_len_index += 1
+		img_text = lrc_font.render(each_line[10:-1], True, THECOLORS.get("grey80"))
+		# if img_text.get_width() > 630:
+		# 	pass
+		new_lyrics.append(img_text)
+	return music_lrc_line_len_index
+		
+def flip_the_lyrics(_roll_two_lrc_line, _now_lyc_time):
+	global music_lrc_is_roll, highlight_lrc_index, highlight_lrc_last, lrc_line_index, move_text
+	for time_unit in lrc_time:
+		# 遍历时间列表，判断是否到了下一行歌词的时间
+		if _now_lyc_time - 0.1 <= time_unit <= _now_lyc_time + 0.1:
+			highlight_lrc_index = lrc_time.index(time_unit) - 1
+			if branch_lrc_text is False:
+				highlight_lrc_index += 1
+			if lrc_time[lrc_time.index(time_unit)] == time_unit:
+				_roll_two_lrc_line = True
+			if highlight_lrc_index < 0:
+				highlight_lrc_index = 0
+			if show_lyrics_roll is True and music_lrc_is_roll is False:
+				highlight_lrc_last = highlight_lrc_index + 1
+				music_lrc_is_roll = True
+				if lrc_line_index != highlight_lrc_index - int(lyrics_len / 2):
+					lrc_line_index = highlight_lrc_index - int(lyrics_len / 2)
+				if highlight_lrc_index < int(lyrics_len / 2):
+					lrc_line_index = 0
+				else:
+					lrc_line_index += 1
+				move_text = True
+	return _roll_two_lrc_line
+
+def manipulate_the_music_object():
+	global music_is_load, music_list_index, music_player
+	if music_is_load is False and loop_music is True and button_loop.display_button is True:  # 单曲循环
+		music_list_index -= 1
+		music_list_index = load_music(music_list_index)
+		music_player = True
+		music_is_load = True
+		init_music_argument()
+		music.play()
+	elif music_is_load is False and 0 <= music_list_index < len(music_list):  # 正常一曲终了后播放下一曲
+		music_list_index = load_music(music_list_index)
+		music_player = True
+		music_is_load = True
+		init_music_argument()
+		music.play()
+	elif music_is_load is False and 0 > music_list_index:  # 在列表开头按下上一曲按钮，播放列表结尾的曲子
+		music_list_index = len(music_list) - 1
+		music_list_index = load_music(music_list_index)
+		music_player = True
+		music_is_load = True
+		init_music_argument()
+		music.play()
+	elif music_is_load is False and loop_music is True and button_loop.display_button is False:  # 列表循环
+		music_player = False
+		music_is_load = False
+		init_music_argument()
+		music_list_index = 0
+	elif music_is_load is False and loop_music is False:  # 顺序播放播完时，啥都不干
+		music_player = False
+		music_is_load = False
+		init_music_argument()
+	if music_push_load is True:
+		music.pause()
+
+def set_the_lyrics():
+	global music_is_pure_music, lrc_line_index
+	try:
+		if music_lrc_line_len < 4:
+			lyrics[int(lyrics_len / 2)].set_msg("未找到歌词！")
+			music_is_pure_music = True
+		elif music_lrc_line_len >= 4 and music_lrc_line[music_lrc_line_len - 1].find("[99:00.00]") != -1:
+			lyrics[int(lyrics_len / 2)].set_msg("纯音乐 请欣赏")
+			music_is_pure_music = True
+	except IndexError:
+		lyrics[int(lyrics_len / 2)].set_msg("歌词文件未找到！")
+		music_is_pure_music = True
+	if music_lrc_line_len >= 4 and music_is_pure_music is False:
+		if music_lrc_line_len - 4 <= lyrics_len:
+			for write_index in range(0, music_lrc_line_len - 4):
+				lyrics[lyrics_len - write_index - 1].set_msg(str(music_lrc_line[write_index + 4][10:-1]))
+		else:
+			try:
+				for write_index in range(0, lyrics_len):
+					lyrics[lyrics_len - write_index - 1].set_msg(
+						str(music_lrc_line[write_index + lrc_line_index + 4][10:-1]))
+			except IndexError:
+				lrc_line_index -= 1
+				
+def set_the_film_list():
+	global lrc_line_index
+	if len(music_list) <= lyrics_len:
+		for write_index in range(0, len(music_list)):
+			lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index]))
+	else:
+		try:
+			for write_index in range(0, lyrics_len):
+				lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
+		except IndexError:
+			lrc_line_index -= 1
+			
+def set_the_information():
+	prefix = "                                    "
+	lyrics[lyrics_len - 2].set_msg(prefix + "歌曲名")
+	lyrics[lyrics_len - 3].set_msg(prefix + "->  " + str(music_key_name))
+	lyrics[lyrics_len - 4].set_msg(prefix + "艺术家名")
+	lyrics[lyrics_len - 5].set_msg(prefix + "->  " + str(music_key_arties))
+	lyrics[lyrics_len - 6].set_msg(prefix + "专辑名")
+	lyrics[lyrics_len - 7].set_msg(prefix + "->  " + str(music_key_albums))
+	lyrics[lyrics_len - 9].set_msg(prefix + "sr: " + str(music_key_sample_rate) + "Hz  ca: " +
+	                               str(music_key_channels) + "  len: " + str(int(music_kry_length)) + "s")
+	lyrics[lyrics_len - 10].set_msg(prefix + "use ID3v2")
+	lyrics[lyrics_len - 13].set_msg(prefix + "freebird fly in the sky!")
+	
+def set_the_settings():
+	lyrics[int(lyrics_len / 2)].set_msg("")
+	lyrics[lyrics_len - 1].set_msg("滚动歌词       歌词分行       键盘快捷键     背景切换")
+	
+def set_the_home_page():
+	lyrics[lyrics_len - 1].set_msg("主页面")
+	lyrics[int(lyrics_len / 2)].set_msg("更多内容，敬请期待")
 
 # 主循环
 while True:
@@ -417,7 +764,7 @@ while True:
 					branch_lrc_text = True
 				music_player = True
 				music_is_load = True
-				_init_music_argument()
+				init_music_argument()
 			elif event.key == pygame.K_s:
 				if sea_setting_film is False:
 					sea_setting_film = True
@@ -571,7 +918,7 @@ while True:
 					branch_lrc_text = True
 				music_player = True
 				music_is_load = True
-				_init_music_argument()
+				init_music_argument()
 		elif freebutton.position_button_class(button_set_highlight, pygame.mouse.get_pos()) is True:
 			button_set_highlight.set_msg_color(THECOLORS.get("grey95"))
 			button_set_highlight.check_button = True
@@ -610,99 +957,14 @@ while True:
 
 	# 以下代码接受从事件遍历中发出的信号，对音乐对象进行操作，注意，有先后顺序！
 	try:
-		if music_is_load is False and loop_music is True and button_loop.display_button is True:  # 单曲循环
-			music_list_index -= 1
-			music_list_index = _load_music(music_list_index)
-			music_player = True
-			music_is_load = True
-			_init_music_argument()
-			music.play()
-		elif music_is_load is False and 0 <= music_list_index < len(music_list):  # 正常一曲终了后播放下一曲
-			music_list_index = _load_music(music_list_index)
-			music_player = True
-			music_is_load = True
-			_init_music_argument()
-			music.play()
-		elif music_is_load is False and 0 > music_list_index:  # 在列表开头按下上一曲按钮，播放列表结尾的曲子
-			music_list_index = len(music_list) - 1
-			music_list_index = _load_music(music_list_index)
-			music_player = True
-			music_is_load = True
-			_init_music_argument()
-			music.play()
-		elif music_is_load is False and loop_music is True and button_loop.display_button is False:  # 列表循环
-			music_player = False
-			music_is_load = False
-			_init_music_argument()
-			music_list_index = 0
-		elif music_is_load is False and loop_music is False:  # 顺序播放播完时，啥都不干
-			music_player = False
-			music_is_load = False
-			_init_music_argument()
-		if music_push_load is True:
-			music.pause()
+		manipulate_the_music_object()
 	except pygame.error:
 		music_list_index += 1
 		
 	# 获取标签信息
 	if music_is_load is True and music_key_is_load is False:
 		try:
-			_film = b"0"
-			music_key_lrc = ""
-			music_key_introduction = ""
-			use_music_key_lrc = False
-			try:
-				music_key = mutagen.File(music_path + music_list[music_list_index])
-			except mutagen.MutagenError:
-				music_key = mutagen.File(music_list[music_list_index])
-			music_key_name = music_key.get("TIT2")     # 歌曲名
-			music_key_arties = music_key.get("TPE1")   # 艺术家名
-			music_key_albums = music_key.get("TALB")   # 专辑名
-			music_key_sample_rate = music_key.info.sample_rate
-			music_key_channels = music_key.info.channels
-			music_kry_length = music_key.info.length
-			for index in range(0, len(music_key.values())):
-				try:
-					_film = music_key.values()[index].data
-				except AttributeError:
-					try:
-						_lrc = music_key.values()[index].text
-						if _lrc[0] == "[" and _lrc[3] == ":":
-							music_key_lrc = music_key.values()[index].text
-							use_music_key_lrc = True
-					except (AttributeError, IndexError, TypeError):
-						continue
-			if use_music_key_lrc is True:
-				line_str = ""
-				music_lrc_line = []
-				for index in range(0, len(music_key_lrc)):
-					if music_key_lrc[index] != "\r" and music_key_lrc[index] != "\n":
-						line_str += music_key_lrc[index]
-					elif music_key_lrc[index] == "\r":
-						line_str += "\n"
-						music_lrc_line.append(line_str)
-						line_str = ""
-			music_image_film = open("music_image_film.music_image", "wb+")
-			music_image_film.write(_film)
-			music_image_film.close()
-			# img = cv2.imread('music_image_film.music_image')
-			# blur_image = cv2.GaussianBlur(img, (5, 5), 3)
-			try:
-				music_key_image = pygame.image.load(os.path.join('music_image_film.music_image')).convert()
-			except pygame.error:
-				music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg')).convert()
-			finally:
-				try:
-					music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
-				except ValueError:
-					music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg')).convert()
-					music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
-			
-			# create the original pygame surface
-			# c_size, c_image_mode, c_raw = (260, 260), 'RGBA', _film
-			# surf = pygame.image.fromstring(c_raw, c_size, c_image_mode)
-			# pil_blured = Image.fromstring("RGBA", c_size, c_raw).filter(ImageFilter.GaussianBlur(radius=6))
-			# finally_image = pygame.image.fromstring(pil_blured.tostring("raw", c_image_mode), c_size, c_image_mode)
+			get_the_tag_information()
 			music_key_is_load = True
 		except IndexError:
 			music_key_is_load = False
@@ -710,134 +972,19 @@ while True:
 	# 以下代码用于检测歌词，排版与打印歌词
 	lyrics_len = len(lyrics)   # 歌词显示列表的长度
 	if music_is_load is True and music_lrc_is_load is False and music_lrc_is_read is False:  # 载入歌词
-		if use_music_key_lrc is False:
-			for lrc_unit in music_lrc_list:
-				try:
-					if lrc_unit[:len(lrc_unit) - 4] == music_list[music_list_index][:len(music_list[music_list_index]) - 4]:
-						try:
-							music_lrc_text = open(music_lrc_path + lrc_unit, "r+", encoding = "utf-8")
-							music_lrc_is_load = True
-						except SystemError:
-							music_lrc_is_load = False
-							lyrics[int(lyrics_len / 2)].set_msg("找到歌词文件但载入失败！")
-							music_lrc_line = []
-					else:
-						music_lrc_line = []
-				except (UnicodeEncodeError, PermissionError):
-					print(str(format(time.time(), ".5f")) + "   ERROR : UnicodeEncodeError or PermissionError\n")
-		else:
-			music_lrc_is_load = True
-		music_lrc_draw = []
-		lrc_line_index = 0
+		get_lrc_from_lrc_film(lyrics_len)
+	
 	# 读取标签信息后，使用标签信息作为歌曲信息
 	if music_lrc_is_load is False and music_key_is_load is True and music_key_is_read is False:
-		if music_key_name is not None:
-			music_name.set_msg(str(music_key_name))
-		if music_key_arties is not None and music_key_albums is not None:
-			music_arties.set_msg("音乐家：" + str(music_key_arties) + "  专辑：" + str(music_key_albums))
-		else:
-			music_arties.set_msg("音乐家：未知  专辑：未知")
-		music_key_is_read = True
-		music_lrc_is_load = True
+		use_tag_information_as_a_song_message()
+	
 	# 如果没有读取标签，使用文件名作为歌曲信息
 	if music_lrc_is_load is False and music_key_is_load is False and music_key_is_read is False:
-		try:
-			music_name_arties = music_list[music_list_index][:len(music_list[music_list_index]) - 4].split('-', 1)
-			music_name.set_msg(music_name_arties[1][1:])
-			music_arties.set_msg("音乐家：" + music_name_arties[0][:-1] + "  专辑：未知")
-		except IndexError:
-			music_name.set_msg("未知曲名")
-			music_arties.set_msg("音乐家：未知  专辑：未知")
-		music_key_is_read = True
+		use_filename_as_a_song_message()
+	
 	if music_lrc_is_load is True and music_lrc_is_read is False:  # 读取歌词
-		for unit in lyrics:
-			unit.set_msg("")
-		if use_music_key_lrc is False:
-			music_lrc_line = []  # 用于存放歌词的每一行
-			try:
-				for each_line in music_lrc_text:
-					music_lrc_draw.append(False)
-					music_lrc_line.append(each_line)
-			except ValueError:
-				pass
-		else:
-			for _ in music_lrc_line:
-				music_lrc_draw.append(False)
-		if type(music_lrc_text) is not str:
-			music_lrc_text.close()
-		music_lrc_is_read = True
-		try:
-			if str(music_lrc_line[1][1:4]) == "ti:":
-				music_name.set_msg(str(music_lrc_line[1][4:len(music_lrc_line[1]) - 2]))
-			if str(music_lrc_line[2][1:4]) == "ar:" and str(music_lrc_line[3][1:4]) == "al:":
-				music_arties.set_msg("音乐家：" + str(music_lrc_line[2][4:len(music_lrc_line[2]) - 2]) +
-									 "  专辑：" + str(music_lrc_line[3][4:len(music_lrc_line[3]) - 2]))
-			if str(music_lrc_line[4][1:4]) == "by:":
-				music_lrc_line.pop(4)
-		except IndexError:
-			try:
-				music_name_arties = music_list[music_list_index][:len(music_list[music_list_index]) - 4].split('-', 1)
-				music_name.set_msg(music_name_arties[1][1:])
-				music_arties.set_msg("音乐家：" + music_name_arties[0][:-1] + "  专辑：未知")
-			except IndexError:
-				music_name.set_msg("未知曲名")
-				music_arties.set_msg("音乐家：未知  专辑：未知")
-			music_is_pure_music = True
-		finally:
-			music_lrc_line_len = len(music_lrc_line)
-		each_line_index = lyrics_len - 1
-		music_lrc_line_len_index = 0
-		lrc_time = []    # 每行歌词的时间
-		new_lyrics = []  # 每行歌词渲染后的图像
-		if branch_lrc_text is True:
-			index_offset_quantity = 0
-			for each_index in range(0, len(music_lrc_line)):
-				this_line_time = 0
-				new_line = music_lrc_line[each_index + index_offset_quantity].split(" / ")
-				if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
-					break
-				try:
-					this_line_time = int(new_line[0][1:3]) * 60 + int(new_line[0][4:6]) + int(new_line[0][7:9]) / 100
-				except (TypeError, ValueError):
-					this_line_time = 0
-				if len(new_line) == 2:
-					try:
-						lrc_time.append(this_line_time)
-						music_lrc_line[each_index + index_offset_quantity] = new_line[0] + " / "
-						lrc_time.append(this_line_time)
-						music_lrc_line.insert(each_index + index_offset_quantity + 1, "[00:00:00]" + new_line[1])
-						music_lrc_line_len_index += 2
-					except (IndexError, TypeError, ValueError):
-						music_lrc_line_len_index += 1
-				else:
-					try:
-						# 将每行歌词的时间导入时间列表
-						lrc_time.append(this_line_time)
-						music_lrc_line_len_index += 1
-					except (IndexError, TypeError, ValueError):
-						music_lrc_line_len_index += 1
-				index_offset_quantity += len(new_line) - 1
-			for index in range(0, len(lrc_time)):
-				try:
-					if lrc_time[index] == 0:
-						lrc_time.pop(index)
-				except IndexError:
-					break
-		else:
-			for each_line in music_lrc_line:
-				if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
-					break
-				try:
-					# 将每行歌词的时间导入时间列表
-					lrc_time.append(int(each_line[1:3]) * 60 + int(each_line[4:6]) + int(each_line[7:9]) / 100)
-					music_lrc_line_len_index += 1
-				except (IndexError, TypeError, ValueError):
-					music_lrc_line_len_index += 1
-				img_text = lrc_font.render(each_line[10:-1], True, THECOLORS.get("grey80"))
-				# if img_text.get_width() > 630:
-				# 	pass
-				new_lyrics.append(img_text)
-		music_lrc_line_len = len(music_lrc_line)
+		read_the_lyrics()
+	
 	if sea_music_list is False:
 		if lrc_line_index < 0:
 			lrc_line_index = 0
@@ -851,56 +998,22 @@ while True:
 	if move_text is True:
 		for unit in lyrics:
 			unit.set_msg("")
+	
 	if sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False and move_text is True:
-		try:
-			if music_lrc_line_len < 4:
-				lyrics[int(lyrics_len / 2)].set_msg("未找到歌词！")
-				music_is_pure_music = True
-			elif music_lrc_line_len >= 4 and music_lrc_line[music_lrc_line_len - 1].find("[99:00.00]") != -1:
-				lyrics[int(lyrics_len / 2)].set_msg("纯音乐 请欣赏")
-				music_is_pure_music = True
-		except IndexError:
-			lyrics[int(lyrics_len / 2)].set_msg("歌词文件未找到！")
-			music_is_pure_music = True
-		if music_lrc_line_len >= 4 and music_is_pure_music is False:
-			if music_lrc_line_len - 4 <= lyrics_len:
-				for write_index in range(0, music_lrc_line_len - 4):
-					lyrics[lyrics_len - write_index - 1].set_msg(str(music_lrc_line[write_index + 4][10:-1]))
-			else:
-				try:
-					for write_index in range(0, lyrics_len):
-						lyrics[lyrics_len - write_index - 1].set_msg(str(music_lrc_line[write_index + lrc_line_index + 4][10:-1]))
-				except IndexError:
-					lrc_line_index -= 1
+		set_the_lyrics()
+	
 	elif sea_music_list is True and move_text is True:
-		if len(music_list) <= lyrics_len:
-			for write_index in range(0, len(music_list)):
-				lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index]))
-		else:
-			try:
-				for write_index in range(0, lyrics_len):
-					lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
-			except IndexError:
-				lrc_line_index -= 1
-	# 显示歌曲信息
+		set_the_film_list()
+	
 	elif sea_music_film is True and move_text is True:
-		prefix = "                                    "
-		lyrics[lyrics_len - 2].set_msg(prefix + "歌曲名")
-		lyrics[lyrics_len - 3].set_msg(prefix + "->  " + str(music_key_name))
-		lyrics[lyrics_len - 4].set_msg(prefix + "艺术家名")
-		lyrics[lyrics_len - 5].set_msg(prefix + "->  " + str(music_key_arties))
-		lyrics[lyrics_len - 6].set_msg(prefix + "专辑名")
-		lyrics[lyrics_len - 7].set_msg(prefix + "->  " + str(music_key_albums))
-		lyrics[lyrics_len - 9].set_msg(prefix + "sr: " + str(music_key_sample_rate) + "Hz  ca: " +
-		                  str(music_key_channels) + "  len: " + str(int(music_kry_length)) + "s")
-		lyrics[lyrics_len - 10].set_msg(prefix + "use ID3v2")
-		lyrics[lyrics_len - 13].set_msg(prefix + "freebird fly in the sky!")
+		set_the_information()
+	
 	elif sea_setting_film is True and move_text is True:
-		lyrics[int(lyrics_len / 2)].set_msg("")
-		lyrics[lyrics_len - 1].set_msg("滚动歌词       歌词分行       键盘快捷键     背景切换")
+		set_the_settings()
+	
 	elif sea_home_page is True and move_text is True:
-		lyrics[lyrics_len - 1].set_msg("主页面")
-		lyrics[int(lyrics_len / 2)].set_msg("更多内容，敬请期待")
+		set_the_home_page()
+	
 	move_text = False
 	
 	# 自动翻动歌词
@@ -908,34 +1021,11 @@ while True:
 	now_lyc_time = float(music.get_pos() / 1000)
 	roll_two_lrc_line = False
 	if sea_music_list is False and music_lrc_is_read is True and show_highlight is True:
-		need_set_highlight = False
-		each_line_index = lyrics_len - 1
-		music_lrc_line_index = 1
-		music_lrc_line_len_index = 0
-		for time_unit in lrc_time:
-			# 遍历时间列表，判断是否到了下一行歌词的时间
-			if now_lyc_time - 0.1 <= time_unit <= now_lyc_time + 0.1:
-				highlight_lrc_index = lrc_time.index(time_unit) - 1
-				if branch_lrc_text is False:
-					highlight_lrc_index += 1
-				if lrc_time[lrc_time.index(time_unit)] == time_unit:
-					roll_two_lrc_line = True
-				if highlight_lrc_index < 0:
-					highlight_lrc_index = 0
-				if show_lyrics_roll is True and music_lrc_is_roll is False:
-					highlight_lrc_last = highlight_lrc_index + 1
-					music_lrc_is_roll = True
-					if lrc_line_index != highlight_lrc_index - int(lyrics_len / 2):
-						lrc_line_index = highlight_lrc_index - int(lyrics_len / 2)
-					if highlight_lrc_index < int(lyrics_len / 2):
-						lrc_line_index = 0
-					else:
-						lrc_line_index += 1
-					move_text = True
+		roll_two_lrc_line = flip_the_lyrics(roll_two_lrc_line, now_lyc_time)
 	if roll_two_lrc_line is True or highlight_lrc_last == highlight_lrc_index:
 		music_lrc_is_roll = False
 	
-	dirty_rects.append(pygame.Rect(0, 0, 800, 600))  # 全屏需要更新
+	dirty_rects.append(pygame.Rect(0, 0, 720, 480))  # 全屏需要更新
 	
 	# 打印歌词
 	# if sea_music_list is False and sea_music_film is False and move_text is True:
@@ -1039,3 +1129,6 @@ while True:
 		screen.blit(pg_wind_music[2], (0, 0))
 	clock.tick(frame_number)  # 控制帧数
 	dirty_rects.clear()
+
+# if __name__ == "__main__":
+# 	pass
