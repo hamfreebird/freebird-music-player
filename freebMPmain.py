@@ -8,13 +8,19 @@ import os
 import sys
 import time
 import pickle
-import pygame
+import random
 import dialog_box
 import music_assets
-from pygame.mixer import init as mixer_init  # 用于初始化音乐模块
-import pygame.freetype as freetype
-from pygame.colordict import THECOLORS
+try:
+	import pygame
+	from pygame.mixer import init as mixer_init  # 用于初始化音乐模块
+	import pygame.freetype as freetype
+	from pygame.colordict import THECOLORS
+	from pygame.draw import rect as draw_rect
+except ModuleNotFoundError:
+	dialog_box.error_msg("can't find pygame module!")
 from freepygame import freetext, freebutton, freeicon
+from json import JSONDecoder, loads, dump
 from _io import text_encoding
 # from PIL import Image, ImageFilter
 import mutagen
@@ -24,6 +30,7 @@ import mutagen
 # heartrate.trace(browser=True)
 
 text_encoding("utf-8")
+JSONDrcoder = JSONDecoder()
 
 argv = sys.argv
 
@@ -45,7 +52,7 @@ setting.close()
 mixer_init(frequency = 44100)
 pygame.init()
 freetype.init()
-frame_number = 60
+frame_number = 80
 pygame.display.set_caption("freebird music player")
 pygame.display.set_icon(pygame.image.load("assets\\freebird_music.ico"))
 pg_wind_music_index = 3
@@ -53,7 +60,6 @@ screen = pygame.display.set_mode(display_size, pygame.DOUBLEBUF | pygame.HWSURFA
 buffer = pygame.Surface(display_size)
 dirty_rects = []
 try:
-	text_font = pygame.font.Font("assets\\AiNiPoSui-ShengGuoWanMei-2.ttf", 22)
 	lrc_font = pygame.font.Font("assets\\simhei.ttf", 20)
 	pg_wind_music1 = pygame.image.load("assets\\wind_music.JPG").convert(24)
 	pg_wind_music2 = pygame.image.load("assets\\wind_music2.JPG").convert(24)
@@ -63,7 +69,7 @@ try:
 	pg_wind_music3_r = pygame.image.load("assets\\wind_music3_r.jpg").convert(24)
 	pg_wind_music = [pg_wind_music1, pg_wind_music2, pg_wind_music3]
 	pg_wind_music_r = [pg_wind_music1_r, pg_wind_music2_r, pg_wind_music3_r]
-	pg_wind_color = [(0, 105, 70), (0, 20, 105), (137, 30, 0)]
+	pg_wind_color = [(0, 105, 70), (0, 20, 105), (137, 30, 0), (80, 80, 80)]
 	icon_play = freeicon.FreeIcon(screen, (330, 415), pygame.image.load("assets\\icon\\play_1.png"),
 	             pygame.image.load("assets\\icon\\play_2.png"))
 	icon_stop = freeicon.FreeIcon(screen, (330, 415), pygame.image.load("assets\\icon\\stop_1.png"),
@@ -123,8 +129,8 @@ try:
 	freebird_text = freetext.SuperText(screen, (display_size[0] - 145, display_size[1] - 30), "freebird", size=20,
 	                                   font="assets\\FeiXiangDeNiaoErBeiChongChi1-2.ttf",
 	                                   color=THECOLORS.get("grey100"), dsm=dsm)
-	pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Paper ship", text_font,
-	                                   color=THECOLORS.get("grey100"), dsm=dsm)
+	pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Paper ship", "assets\\segoepr.ttf",
+	                                   size=16, color=THECOLORS.get("grey100"), dsm=dsm)
 	version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.3.0", "assets\\simhei.ttf",
 	                                  size=15, color=THECOLORS.get("grey95"), dsm=dsm)
 	music_name = freetext.SuperText(screen, (5, 42), "《》", "assets\\simhei.ttf", size=19,
@@ -190,6 +196,112 @@ for unit in button:
 	unit.display_button = False
 icon_stop.display_button = False
 
+class Parameter():
+    
+	def __init__(self):
+		self.infor_dict = self.load_parameter()
+		self.infor_title = self.infor_dict.get("title")
+		self.infor_music_path = self.infor_dict.get("music_path")
+		self.infor_music_lrc_path = self.infor_dict.get("music_lrc_path")
+		self.infor_music_list = self.infor_dict.get("music_list")
+		self.infor_music_lrc_list = self.infor_dict.get("music_lrc_list")
+		self.infor_music_last = self.infor_dict.get("music_last")
+		self.infor_music_add = self.infor_dict.get("music_add")
+		self.infor_music_time = self.infor_dict.get("music_time")
+
+	def load_parameter(self):
+		save_film = open("assets\\information.save", "rb+")
+		try:
+			_infor_dict = pickle.load(save_film)
+		except EOFError:
+			save_film.close()
+			self.init_parameter()
+			save_film = open("assets\\information.save", "rb+")
+			_infor_dict = pickle.load(save_film)
+		save_film.close()
+		return _infor_dict
+
+	def change_parameter(self, new_dict : dict):
+		self.infor_dict = new_dict
+
+	def change_title(self, new_title : str):
+		self.infor_title = new_title
+
+	def change_music_path(self, new_music_path : str):
+		self.infor_music_path = new_music_path
+
+	def change_music_lrc_path(self, new_music_lrc_path : str):
+		self.infor_music_lrc_path = new_music_lrc_path
+
+	def change_music_list(self, new_music_list : list):
+		self.infor_music_list = new_music_list
+
+	def change_music_lrc_list(self, new_music_lrc_list : list):
+		self.infor_music_lrc_list = new_music_lrc_list
+
+	def change_music_last(self, new_music_last : str):
+		self.infor_music_last = new_music_last
+
+	def change_music_add(self, new_music_add : list):
+		self.infor_music_add = new_music_add
+
+	def change_music_time(self, new_music_time : dict):
+		self.infor_music_time = new_music_time
+
+	def get_title(self):
+		return self.infor_title
+
+	def get_music_path(self):
+		return self.infor_music_path
+	
+	def get_music_lrc_path(self):
+		return self.infor_music_lrc_path
+	
+	def get_music_list(self):
+		return self.infor_music_list
+
+	def get_music_lrc_list(self):
+		return self.infor_music_lrc_list
+
+	def get_music_last(self):
+		return self.infor_music_last
+
+	def get_music_add(self):
+		return self.infor_music_add
+
+	def get_music_time(self):
+		return self.infor_music_time
+
+	def save_parameter(self):
+		pickle_film = open("assets\\information.save", "wb")
+		pickle.dump(self.infor_dict, pickle_film)
+		pickle_film.close()
+
+	def update_parameter(self):
+		self.infor_dict.update(title = self.infor_title)
+		self.infor_dict.update(music_path = self.infor_music_path)
+		self.infor_dict.update(music_lrc_path = self.infor_music_lrc_path)
+		self.infor_dict.update(music_list = self.infor_music_list)
+		self.infor_dict.update(music_lrc_list = self.infor_music_lrc_list)
+		self.infor_dict.update(music_last = self.infor_music_last)
+		self.infor_dict.update(music_add = self.infor_music_add)
+		self.infor_dict.update(music_time = self.infor_music_time)
+
+	def get_parameter(self):
+		return self.infor_dict
+
+	def init_parameter(self):
+		_information = open("assets\\information.save", "wb+")
+		pickle.dump({"title": "None",
+		             "music_path": music_path,
+		             "music_lrc_path": music_lrc_path,
+		             "music_list": music_list,
+		             "music_lrc_list": music_lrc_list,
+					 "music_last" : "",
+		             "music_add": [],
+		             "music_time": {}}, _information)
+		_information.close()
+
 # 获取音乐(歌词)文件夹中的文件列表
 if music_path_set == "":
 	music_list = os.listdir(path = 'music')
@@ -222,23 +334,6 @@ try:
 	music_list.insert(0, argv[1])
 except IndexError:
 	pass
-		
-_information = open("assets\\information.save", "wb+")
-try:
-	infor_dict = pickle.load(_information)
-except EOFError:
-	_music_list_len = len(music_list)
-	_music_time = dict(zip([music_list[index] for index in range(_music_list_len)],
-	                       [0 for _ in range(_music_list_len)]))
-	pickle.dump({"title": "None",
-	             "music_path": music_path,
-	             "music_lrc_path": music_lrc_path,
-	             "music_list": music_list,
-	             "music_lrc_list": music_lrc_list,
-	             "music_add": [],
-	             "music_time": _music_time}, _information)
-finally:
-	_information.close()
 		
 # 状态与参数
 music_lrc_is_load = False      # 歌词已加载
@@ -281,6 +376,7 @@ write_msg = False              # 是否写入输入框
 use_keyboard_to_set = True     # 是否使用键盘设置
 blur_image = None              # 高斯模糊背景
 need_to_save = False           # 是否需要保存信息
+need_to_change_home = True     # 是否需要刷新主页
 
 # 音乐播放的准备
 if music_list_index < len(music_list):
@@ -296,20 +392,17 @@ else:
 	pygame.quit()
 	exit()
 	
-save_film = open("assets\\information.save", "rb+")
-infor_dict = pickle.load(save_film)
-print(infor_dict)
-save_film.close()
-	
 def init_music_argument():
 	global music_lrc_is_load, music_lrc_is_read, music_key_is_load, music_lrc_is_roll, \
-		music_key_is_read, music_is_pure_music, move_text
+		music_key_is_read, music_is_pure_music, need_to_change_home, need_to_save, move_text
 	music_lrc_is_load = False
 	music_lrc_is_read = False
 	music_key_is_load = False
 	music_lrc_is_roll = False
 	music_key_is_read = False
 	music_is_pure_music = False
+	need_to_change_home = True
+	need_to_save = False
 	move_text = True
 	
 def load_music(_music_list_index):
@@ -401,7 +494,10 @@ def get_lrc_from_lrc_film(_lyrics_len):
 			try:
 				if lrc_unit[:len(lrc_unit) - 4] == music_list[music_list_index][:len(music_list[music_list_index]) - 4]:
 					try:
-						music_lrc_text = open(music_lrc_path + lrc_unit, "r+", encoding="utf-8")
+						try:
+							music_lrc_text = open(music_lrc_path + lrc_unit, "r+", encoding="utf-8")
+						except OSError:
+							music_lrc_text = open(lrc_unit, "r+", encoding="utf-8")
 						music_lrc_is_load = True
 					except SystemError:
 						music_lrc_is_load = False
@@ -584,12 +680,14 @@ def manipulate_the_music_object():
 		music_is_load = True
 		init_music_argument()
 		music.play()
+		parameter.change_music_last(music_list[music_list_index])
 	elif music_is_load is False and 0 <= music_list_index < len(music_list):  # 正常一曲终了后播放下一曲
 		music_list_index = load_music(music_list_index)
 		music_player = True
 		music_is_load = True
 		init_music_argument()
 		music.play()
+		parameter.change_music_last(music_list[music_list_index])
 	elif music_is_load is False and 0 > music_list_index:  # 在列表开头按下上一曲按钮，播放列表结尾的曲子
 		music_list_index = len(music_list) - 1
 		music_list_index = load_music(music_list_index)
@@ -597,6 +695,7 @@ def manipulate_the_music_object():
 		music_is_load = True
 		init_music_argument()
 		music.play()
+		parameter.change_music_last(music_list[music_list_index])
 	elif music_is_load is False and loop_music is True and button_loop.display_button is False:  # 列表循环
 		music_player = False
 		music_is_load = False
@@ -637,11 +736,13 @@ def set_the_film_list():
 	global lrc_line_index
 	if len(music_list) <= lyrics_len:
 		for write_index in range(0, len(music_list)):
-			lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index]))
+			_film_name = str(music_list[write_index]).split("/")[-1]
+			lyrics[lyrics_len - write_index - 1].set_msg(_film_name)
 	else:
 		try:
 			for write_index in range(0, lyrics_len):
-				lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
+				_film_name = str(music_list[write_index + lrc_line_index]).split("/")[-1]
+				lyrics[lyrics_len - write_index - 1].set_msg(_film_name)
 		except IndexError:
 			lrc_line_index -= 1
 			
@@ -663,8 +764,46 @@ def set_the_settings():
 	lyrics[lyrics_len - 1].set_msg("滚动歌词       歌词分行       键盘快捷键     背景切换")
 	
 def set_the_home_page():
+	music_last = parameter.get_music_last()
+	music_last_name = music_last.split("/")[-1][:-4]
+	music_time = parameter.get_music_time().items()
+	music_time_name, music_time_num = [], []
+	for unit in music_time:
+		music_time_name.append([str(unit[0]), unit[1]])
+		music_time_num.append(unit[1])
+	music_time_num = sorted(music_time_num)[-3:]
+	music_time_top_1, music_time_top_2, music_time_top_3 = "None", "None", "None"
+	music_time_top_index = 0
+	try:
+		for unit in music_time_name:
+			if unit[1] == music_time_num[2] and music_time_top_index == 0:
+				music_time_top_1 = unit[0].split("/")[-1][:-4]
+				music_time_top_index += 1
+				continue
+			elif unit[1] == music_time_num[1] and music_time_top_index == 1:
+				music_time_top_2 = unit[0].split("/")[-1][:-4]
+				music_time_top_index += 2
+				continue
+			elif unit[1] == music_time_num[0] and music_time_top_index == 2:
+				music_time_top_3 = unit[0].split("/")[-1][:-4]
+				music_time_top_index += 3
+				break
+	except IndexError:
+		music_time_top_1, music_time_top_2, music_time_top_3 = "None", "None", "None"
+	# music_other = music_list[random.randint(0, len(music_list) - 1)].split("/")[-1][:-4]
 	lyrics[lyrics_len - 1].set_msg("主页面")
-	lyrics[int(lyrics_len / 2)].set_msg("更多内容，敬请期待")
+	lyrics[lyrics_len - 3].set_msg("上次播放歌曲 -> " + str(music_last_name))
+	lyrics[lyrics_len - 5].set_msg("播放频率top3")
+	lyrics[lyrics_len - 7].set_msg("top1 -> " + music_time_top_1)
+	lyrics[lyrics_len - 8].set_msg("top2 -> " + music_time_top_2)
+	lyrics[lyrics_len - 9].set_msg("top3 -> " + music_time_top_3)
+ 
+parameter = Parameter()
+print("infor title : " + str(parameter.get_title()))
+music_last = parameter.get_music_last()
+music_last_not_load = True
+if music_last == "":
+    music_last_not_load = False
 
 # 主循环
 while True:
@@ -672,7 +811,7 @@ while True:
 	event_text.set_msg("现在时间：" + str(time.localtime().tm_year) + "年 " + str(time.localtime().tm_mon) + "月 " +
 	                   str(time.localtime().tm_mday) + "日 " + str(time.localtime().tm_hour) + "时 " +
 					   str(time.localtime().tm_min) + "分 " + str(time.localtime().tm_sec) + "秒   " +
-					   "当前帧速率 " + str(int(clock.get_fps())) + "     Copyright 2023 freebird")
+					   "当前帧速率 " + str(int(clock.get_fps())) + "     Copyright (c) 2023 freebird")
 	# 事件和信号遍历
 	for event in pygame.event.get():
 		_user_use_MOUSEWHEEL = False
@@ -681,15 +820,15 @@ while True:
 			music_is_load = False
 			music_player = False
 		if event.type == pygame.QUIT:
+			parameter.change_music_last(music_list[music_list_index])
+			parameter.update_parameter()
+			parameter.save_parameter()
 			try:
 				os.remove("music_image_film.music_image")
 			except FileNotFoundError:
 				pass
-			save_film = open("assets\\information.save", "wb+")
-			pickle.dump(infor_dict, save_film)
-			save_film.close()
 			freetype.quit()
-			music.stop()
+			music.stopsave_parameter
 			pygame.quit()           # 退出pygame引擎
 			sys.exit()              # 退出程序
 		elif event.type == pygame.WINDOWEXPOSED and music_player is False:
@@ -795,13 +934,13 @@ while True:
 			button_exit.set_msg_color(THECOLORS.get("grey95"))
 			button_exit.check_button = True
 			if event.type == pygame.MOUSEBUTTONDOWN:
+				parameter.change_music_last(music_list[music_list_index])
+				parameter.update_parameter()
+				parameter.save_parameter()
 				try:
 					os.remove("music_image_film.music_image")
 				except FileNotFoundError:
 					pass
-				save_film = open("assets\\information.save", "wb+")
-				pickle.dump(infor_dict, save_film)
-				save_film.close()
 				freetype.quit()
 				music.stop()
 				pygame.quit()
@@ -864,10 +1003,10 @@ while True:
 				for unit in _music_film:
 					suffix = unit[len(unit) - 4:]
 					if suffix != ".mp3" and suffix != ".wav" and suffix != ".ogg":
+						if suffix == ".lrc":
+							music_lrc_list.append(unit)
 						continue
 					music_list.append(unit)
-					infor_dict.get("music_add").append(unit)
-					infor_dict.get("music_time")[unit] = 0
 					print(unit)
 		elif freebutton.position_button([660, 700, 175, 215], pygame.mouse.get_pos()) is True:
 			icon_vol_open.set_index(1)
@@ -940,6 +1079,27 @@ while True:
 			button_set_image.check_button = True
 			if event.type == pygame.MOUSEBUTTONDOWN and sea_setting_film is True:
 				pg_wind_music_index -= 1
+		elif sea_home_page is True:
+			if freebutton.position_button_class(lyrics[lyrics_len - 3], pygame.mouse.get_pos()) is True:
+				lyrics[lyrics_len - 3].set_msg_color(THECOLORS.get("grey100"))
+				lyrics[lyrics_len - 3].check_button = True
+				if event.type == pygame.MOUSEBUTTONDOWN:
+					sea_music_list = False
+					sea_music_film = False
+					sea_setting_film = False
+					sea_home_page = False
+					move_text = True
+					try:
+						_index = music_list.index(music_last)
+					except ValueError:
+						music_list.append(music_last)
+						_index = len(music_list) - 1
+					finally:
+						music_list_index = load_music(_index)
+						music_player = True
+						music_is_load = True
+						init_music_argument()
+						music.play()
 		else:
 			for unit in button:
 				unit.check_button = False  # 这里的check_button是用于控制按钮是否被按下的，上面的代码中也有
@@ -947,12 +1107,16 @@ while True:
 				unit.check_button = False
 			for unit in icon:
 				unit.check_button = False
+			for unit in lyrics:
+				unit.check_button = False
 		if event.type == pygame.WINDOWLEAVE:  # 当光标离开窗口后，坐标依然停留在离开前的位置，可能造成按钮一直被按下的假象
 			for unit in button:               # 所以这里在设置一次
 				unit.check_button = False
 			for unit in set_button:
 				unit.check_button = False
 			for unit in icon:
+				unit.check_button = False
+			for unit in lyrics:
 				unit.check_button = False
 
 	# 以下代码接受从事件遍历中发出的信号，对音乐对象进行操作，注意，有先后顺序！
@@ -1077,13 +1241,15 @@ while True:
 	if sea_music_film is True and music_key_image is not None and sea_setting_film is False:
 		screen.blit(music_key_image, (10, 90))
 	if pg_wind_music_index < 1:
-		pg_wind_music_index = 3
+		pg_wind_music_index = 4
 	if pg_wind_music_index == 1:
 		screen.blit(pg_wind_music_r[0], (635, 0))
 	elif pg_wind_music_index == 2:
 		screen.blit(pg_wind_music_r[1], (635, 0))
 	elif pg_wind_music_index == 3:
 		screen.blit(pg_wind_music_r[2], (635, 0))
+	elif pg_wind_music_index == 4:
+		draw_rect(screen, THECOLORS.get("grey20"), (display_size[0] - 80, 0, 80, 480), 0)
 	for unit in button:
 		if unit.check_button is False:
 			unit.set_msg_color(THECOLORS.get("grey75"))
@@ -1094,6 +1260,9 @@ while True:
 		if unit.check_button is False:
 			unit.set_index(0)
 		unit.draw()
+	for unit in lyrics:
+		if unit.check_button is False:
+			unit.set_msg_color(THECOLORS.get("grey95"))
 	if sea_setting_film is True:
 		for unit in set_button:
 			if unit.check_button is False:
@@ -1109,9 +1278,14 @@ while True:
 			music_name_text.set_msg("文件名称 -> " + str(music_list[music_list_index])[:65] + "...")
 	now_music_time = int(music.get_pos() / 1000)
 	time_num.set_msg(str(now_music_time) + "s")
-	if now_music_time == 100:
-		infor_dict.get("music_time")[music_list[music_list_index]] = infor_dict.get("music_time").get(music_list[music_list_index]) + 1
-		print(infor_dict.get("music_time")[music_list[music_list_index]])
+	if now_music_time == 60:
+		need_to_save = True
+		_new_time_dict = parameter.get_music_time()
+		if _new_time_dict.get(str(music_list[music_list_index])) == None:
+			_new_time_dict[str(music_list[music_list_index])] = 1
+		else:
+			_new_time_dict[str(music_list[music_list_index])] += 1
+		parameter.change_music_time(_new_time_dict)
 	vol_num.set_msg(str(int(music.get_volume() * 100)))
 	for unit in text:
 		unit.draw()
@@ -1120,13 +1294,15 @@ while True:
 	# pygame.display.update(dirty_rects)
 	pygame.display.flip()
 	if pg_wind_music_index < 1:
-		pg_wind_music_index = 3
+		pg_wind_music_index = 4
 	if pg_wind_music_index == 1:
 		screen.blit(pg_wind_music[0], (0, 0))
 	elif pg_wind_music_index == 2:
 		screen.blit(pg_wind_music[1], (0, 0))
 	elif pg_wind_music_index == 3:
 		screen.blit(pg_wind_music[2], (0, 0))
+	elif pg_wind_music_index == 4:
+		draw_rect(screen, THECOLORS.get("grey20"), (0, 0, 640, 480), 0)
 	clock.tick(frame_number)  # 控制帧数
 	dirty_rects.clear()
 

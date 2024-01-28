@@ -201,7 +201,10 @@ class FreeButton():
 		self.border = [border_width, border_color]
 		self.line = [line_width, line_color]
 		self.msg_tran = msg_tran
-		self.font = pygame.font.SysFont(font, size)
+		try:
+			self.font = pygame.font.SysFont(font, size)
+		except TypeError:
+			self.font = font
 		self.rect = pygame.Rect(0, 0, self.width, self.height)
 		self.rect.centerx = self.coordinates[0] + self.width / 2
 		self.rect.centery = self.coordinates[1] + self.height / 2
@@ -547,7 +550,10 @@ class CircleButton(FreeCircle):
 		super().__init__(screen, coordinates, radius, width, rect, angle, aa,
 				 draw_border, border_width, color, border_color)
 		self.msg = msg
-		self._font = pygame.font.SysFont(font, size)
+		try:
+			self._font = pygame.font.SysFont(font, size)
+		except TypeError:
+			self._font = font
 		self.button_color = button_color
 		self.size = size
 		self.msg_color = msg_color
