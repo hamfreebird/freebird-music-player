@@ -7,21 +7,20 @@ Copyright 2023 freebird
 import os
 import sys
 import time
-import pickle
-import random
+import pickle # 存储
 import dialog_box
-import music_assets
 try:
 	import pygame
 	from pygame.mixer import init as mixer_init  # 用于初始化音乐模块
-	import pygame.freetype as freetype
+	import pygame.freetype as freetype  # 新的文字显示（未用）
 	from pygame.colordict import THECOLORS
-	from pygame.draw import rect as draw_rect
+	from pygame.draw import rect, aaline
 except ModuleNotFoundError:
 	dialog_box.error_msg("can't find pygame module!")
-from freepygame import freetext, freebutton, freeicon
-from json import JSONDecoder, loads, dump
-from _io import text_encoding
+	# 下载所需模块
+
+from freepygame import freetext, freebutton, freeicon, freetransformation
+from io import text_encoding
 # from PIL import Image, ImageFilter
 import mutagen
 # import cv2
@@ -29,24 +28,28 @@ import mutagen
 # import heartrate
 # heartrate.trace(browser=True)
 
+# 统一编码
 text_encoding("utf-8")
-JSONDrcoder = JSONDecoder()
 
 argv = sys.argv
 
 # 导入设置文件
-setting_list = ["" for _ in range(0, 3)]
-setting_index = 0
-use_setting_film = True
-setting = open("setting.txt", "r")
-for set_num in setting:
-	setting_list[setting_index] = set_num
-	setting_index += 1
-dsm = 1  # 界面放大倍数
-display_size = (720 * dsm, 480 * dsm)
-music_path_set = str(setting_list[1][14:len(setting_list[1]) - 2])
-music_lrc_path_set = str(setting_list[2][18:len(setting_list[2]) - 2])
-setting.close()
+try:
+	setting_list = ["" for _ in range(0, 3)]
+	setting_index = 0
+	use_setting_film = True
+	setting = open("setting.txt", "r")
+	for set_num in setting:
+		setting_list[setting_index] = set_num
+		setting_index += 1
+	dsm = 1  # 界面放大倍数
+	display_size = (720 * dsm, 480 * dsm)
+	music_path_set = str(setting_list[1][14:len(setting_list[1]) - 2])
+	music_lrc_path_set = str(setting_list[2][18:len(setting_list[2]) - 2])
+	setting.close()
+except:
+    dialog_box.waring_msg("setting.txt file read error!\nplease check you setting film")
+    sys.exit()
 
 # 初始化
 mixer_init(frequency = 44100)
@@ -59,6 +62,12 @@ pg_wind_music_index = 3
 screen = pygame.display.set_mode(display_size, pygame.DOUBLEBUF | pygame.HWSURFACE)
 buffer = pygame.Surface(display_size)
 dirty_rects = []
+# 文件检查
+# _all_assets = os.listdir(path = "assets")
+# _all_icon = os.listdir(path = "assets\\icon")
+# _all_image = os.listdir(path = "assets\\image")
+# _all_other = os.listdir(path = "assets\\other")
+# _all_particle = os.listdir(path = "assets\\particle")
 try:
 	lrc_font = pygame.font.Font("assets\\simhei.ttf", 20)
 	pg_wind_music1 = pygame.image.load("assets\\wind_music.JPG").convert(24)
@@ -69,7 +78,7 @@ try:
 	pg_wind_music3_r = pygame.image.load("assets\\wind_music3_r.jpg").convert(24)
 	pg_wind_music = [pg_wind_music1, pg_wind_music2, pg_wind_music3]
 	pg_wind_music_r = [pg_wind_music1_r, pg_wind_music2_r, pg_wind_music3_r]
-	pg_wind_color = [(0, 105, 70), (0, 20, 105), (137, 30, 0), (80, 80, 80)]
+	pg_wind_color = [(0, 105, 70), (0, 20, 105), (137, 30, 0), (137, 30, 0)]
 	icon_play = freeicon.FreeIcon(screen, (330, 415), pygame.image.load("assets\\icon\\play_1.png"),
 	             pygame.image.load("assets\\icon\\play_2.png"))
 	icon_stop = freeicon.FreeIcon(screen, (330, 415), pygame.image.load("assets\\icon\\stop_1.png"),
@@ -131,7 +140,7 @@ try:
 	                                   color=THECOLORS.get("grey100"), dsm=dsm)
 	pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Paper ship", "assets\\segoepr.ttf",
 	                                   size=16, color=THECOLORS.get("grey100"), dsm=dsm)
-	version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.3.0", "assets\\simhei.ttf",
+	version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.3.2", "assets\\simhei.ttf",
 	                                  size=15, color=THECOLORS.get("grey95"), dsm=dsm)
 	music_name = freetext.SuperText(screen, (5, 42), "《》", "assets\\simhei.ttf", size=19,
 	                                color=THECOLORS.get("grey100"), dsm=dsm)
@@ -175,8 +184,20 @@ try:
 except FileNotFoundError:
 	dialog_box.waring_msg("Missing resource file!")
 	if dialog_box.ask_msg("Want to check the resources file?") is True:
-		_film = music_assets.check_film()
-		if _film is None:
+		_all_assets = os.listdir(path = "assets")
+		_all_icon = os.listdir(path = "assets\\icon")
+		_all_image = os.listdir(path = "assets\\image")
+		_all_other = os.listdir(path = "assets\\other")
+		_all_particle = os.listdir(path = "assets\\particle")
+		_all = [].append(_all_assets).append(_all_icon).append(_all_image).append(_all_other).append(_all_particle)
+		_lose_assets = []
+		for _unit in _all:
+			for _assets in []:
+				if _assets == _unit:
+					continue
+				else:
+					_lose_assets.append(_assets)
+		if _lose_assets == []:
 			dialog_box.info_msg("There is no resource file deletion")
 		else:
 			dialog_box.info_msg("...")
@@ -292,7 +313,7 @@ class Parameter():
 
 	def init_parameter(self):
 		_information = open("assets\\information.save", "wb+")
-		pickle.dump({"title": "None",
+		pickle.dump({"title": "freebird_music_player ;-)",
 		             "music_path": music_path,
 		             "music_lrc_path": music_lrc_path,
 		             "music_list": music_list,
@@ -374,7 +395,8 @@ music_is_pure_music = False    # 音乐是纯音乐或没有歌词
 branch_lrc_text = False        # 是否进行歌词分行
 write_msg = False              # 是否写入输入框
 use_keyboard_to_set = True     # 是否使用键盘设置
-blur_image = None              # 高斯模糊背景
+blur_image = None              # 模糊背景图像
+use_blur_image = True          # 是否使用模糊背景图像
 need_to_save = False           # 是否需要保存信息
 need_to_change_home = True     # 是否需要刷新主页
 
@@ -416,7 +438,7 @@ def load_music(_music_list_index):
 	return _music_list_index
 
 def get_the_tag_information():
-	global music_key_introduction, music_key_image, music_lrc_line, music_key_lrc, use_music_key_lrc
+	global music_key_introduction, music_key_image, music_lrc_line, music_key_lrc, use_music_key_lrc, blur_image
 	
 	music_key_introduction = ""
 	use_music_key_lrc = False
@@ -444,6 +466,9 @@ def get_the_tag_information():
 		except ValueError:
 			music_key_image = pygame.image.load(os.path.join('assets/anto_music_image.jpg')).convert()
 			music_key_image = pygame.transform.smoothscale(music_key_image, (260, 260))
+	if use_blur_image is True:
+		blur_image = freetransformation.image_blur_processing(pygame.Surface.copy(music_key_image), 2)
+		blur_image = pygame.transform.smoothscale(blur_image, (800, 800))
 	# create the original pygame surface
 	# c_size, c_image_mode, c_raw = (260, 260), 'RGBA', _film
 	# surf = pygame.image.fromstring(c_raw, c_size, c_image_mode)
@@ -707,8 +732,8 @@ def manipulate_the_music_object():
 		init_music_argument()
 	if music_push_load is True:
 		music.pause()
-
-def set_the_lyrics():
+  
+def if_cannot_use_lyrics():
 	global music_is_pure_music, lrc_line_index
 	try:
 		if music_lrc_line_len < 4:
@@ -720,6 +745,10 @@ def set_the_lyrics():
 	except IndexError:
 		lyrics[int(lyrics_len / 2)].set_msg("歌词文件未找到！")
 		music_is_pure_music = True
+
+def set_the_lyrics():
+	global music_is_pure_music, lrc_line_index
+	if_cannot_use_lyrics()
 	if music_lrc_line_len >= 4 and music_is_pure_music is False:
 		if music_lrc_line_len - 4 <= lyrics_len:
 			for write_index in range(0, music_lrc_line_len - 4):
@@ -731,7 +760,16 @@ def set_the_lyrics():
 						str(music_lrc_line[write_index + lrc_line_index + 4][10:-1]))
 			except IndexError:
 				lrc_line_index -= 1
-				
+    
+def continuous_rolling_lyrics():
+	if_cannot_use_lyrics()
+	if music_lrc_line_len >= 4 and music_is_pure_music is False:
+		if music_lrc_line_len - 4 <= lyrics_len:
+			for write_index in range(0, music_lrc_line_len - 4):
+				lyrics[lyrics_len - write_index - 1].set_msg(str(music_lrc_line[write_index + 4][10:-1]))
+		else:
+			pass
+            
 def set_the_film_list():
 	global lrc_line_index
 	if len(music_list) <= lyrics_len:
@@ -771,7 +809,7 @@ def set_the_home_page():
 	for unit in music_time:
 		music_time_name.append([str(unit[0]), unit[1]])
 		music_time_num.append(unit[1])
-	music_time_num = sorted(music_time_num)[-3:]
+	music_time_num = sorted(music_time_num)[-4:]
 	music_time_top_1, music_time_top_2, music_time_top_3 = "None", "None", "None"
 	music_time_top_index = 0
 	try:
@@ -929,7 +967,7 @@ while True:
 
 		# 以下调用了freebutton.position_button()的都是按钮
 		# 注意，所有以下代码中按钮的操作都只是改变样貌或控制音乐的暂停和再次播放！
-		# 对于音乐对象本身的操作（如切换音乐等）在时间遍历的下面，这里只是再次发出信号
+		# 对于音乐对象本身的操作（如切换音乐等）在事件遍历的下面，这里只是再次发出信号
 		elif freebutton.position_button_class(button_exit, pygame.mouse.get_pos()) is True:
 			button_exit.set_msg_color(THECOLORS.get("grey95"))
 			button_exit.check_button = True
@@ -1007,7 +1045,6 @@ while True:
 							music_lrc_list.append(unit)
 						continue
 					music_list.append(unit)
-					print(unit)
 		elif freebutton.position_button([660, 700, 175, 215], pygame.mouse.get_pos()) is True:
 			icon_vol_open.set_index(1)
 			icon_vol_open.check_button = True
@@ -1248,8 +1285,6 @@ while True:
 		screen.blit(pg_wind_music_r[1], (635, 0))
 	elif pg_wind_music_index == 3:
 		screen.blit(pg_wind_music_r[2], (635, 0))
-	elif pg_wind_music_index == 4:
-		draw_rect(screen, THECOLORS.get("grey20"), (display_size[0] - 80, 0, 80, 480), 0)
 	for unit in button:
 		if unit.check_button is False:
 			unit.set_msg_color(THECOLORS.get("grey75"))
@@ -1289,6 +1324,10 @@ while True:
 	vol_num.set_msg(str(int(music.get_volume() * 100)))
 	for unit in text:
 		unit.draw()
+	if music_kry_length > 0 and now_music_time > 0:
+		playback_schedule = 720 * (now_music_time / music_kry_length)
+		pygame.draw.aaline(screen, THECOLORS.get("grey50"), (0, 479), (playback_schedule, 479))
+		pygame.draw.aaline(screen, THECOLORS.get("grey50"), (0, 478), (playback_schedule, 478))
 
 	# 窗口刷新，准备再次遍历事件
 	# pygame.display.update(dirty_rects)
@@ -1302,7 +1341,7 @@ while True:
 	elif pg_wind_music_index == 3:
 		screen.blit(pg_wind_music[2], (0, 0))
 	elif pg_wind_music_index == 4:
-		draw_rect(screen, THECOLORS.get("grey20"), (0, 0, 640, 480), 0)
+		screen.blit(blur_image, (-40, -160))
 	clock.tick(frame_number)  # 控制帧数
 	dirty_rects.clear()
 

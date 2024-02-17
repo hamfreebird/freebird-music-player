@@ -3,20 +3,51 @@
 import pygame
 import pygame.gfxdraw
 import pygame.draw
+import random
 
-__all__ = ["FreeButton", "FreeText", "SuperText", "NaSuperText", "FreeAllCircle",
-		   "FreeCircle", "SuperCircle", "CircleButton", "position_button", "FreeAARectangle", "Point"]
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
+ORANGE = (255, 165, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+PURPLE = (160, 32, 240)
 
 def _degree_to_radians(_degree):
 	return _degree * float(6.283185307179586 / 360)
 
-def position_button(button, pos: tuple[int, int]) -> bool:
+def position_button(rect: tuple[int, int, int, int] | list[int, int, int, int], pos: tuple[int, int]):
+	if rect[0] <= pos[0] <= rect[1] and rect[2] <= pos[1] <= rect[3]:
+		return True
+	return False
+
+def position_button_class(button, pos: tuple[int, int]):
 	"""判断给定的坐标是否和按钮对象的坐标重合。
 	注意，本函数对圆型按钮（CircleButton）类的坐标使用的是外切矩形的坐标！"""
 	if (button.get_coordinates()[1][0] >= pos[0] >= button.get_coordinates()[0][0] and
 		button.get_coordinates()[3][1] >= pos[1] >= button.get_coordinates()[0][1]):
 		return True
 	return False
+	
+class FreeIcon():
+	"""自定义图标类"""
+	
+	check_button = False
+	display_button = True
+	rect_pos = []
+	
+	def __init__(self, screen, coordinates, image_1, image_2):
+		self.screen = screen
+		self.coordinates = coordinates
+		self.image = [image_1, image_2]
+		self.image_index = 0
+		
+	def set_index(self, index: int):
+		self.image_index = index
+		
+	def draw(self):
+		self.screen.blit(self.image[self.image_index], self.coordinates)
 
 class Point():
 	
@@ -122,7 +153,7 @@ class FreeText():
 		self.screen, self.msg, self.font, self.size, self.color = screen, msg, font, size, color
 		self.x, self.y = coordinates[0], coordinates[1]
 		try:
-			self._font = pygame.font.SysFont(font, size)
+			self._font = pygame.font.Font(font, size)
 		except TypeError:
 			self._font = font
 		self.img_text = self._font.render(self.msg, True, color)
@@ -143,28 +174,36 @@ class FreeText():
 
 	def set_color(self, color):
 		"""改变文本颜色"""
+		del self._font, self.img_text
+		try:
+			self._font = pygame.font.Font(self.font, self.size)
+		except TypeError:
+			self._font = self.font
 		self.img_text = self._font.render(self.msg, True, color)
 
 	def set_fout(self, font):
 		"""改变文本字体"""
+		del self._font, self.img_text
 		try:
-			self._font = pygame.font.SysFont(font, self.size)
+			self._font = pygame.font.Font(font, self.size)
 		except TypeError:
 			self._font = font
 		self.img_text = self._font.render(self.msg, True, self.color)
 
 	def set_size(self, size):
 		"""改变文本大小"""
+		del self._font, self.img_text
 		try:
-			self._font = pygame.font.SysFont(self.font, size)
+			self._font = pygame.font.Font(self.font, size)
 		except TypeError:
 			self._font = self.font
 		self.img_text = self._font.render(self.msg, True, self.color)
 
 	def set_msg(self, msg):
 		"""改变文本内容"""
+		del self._font, self.img_text
 		try:
-			self._font = pygame.font.SysFont(self.font, self.size)
+			self._font = pygame.font.Font(self.font, self.size)
 		except TypeError:
 			self._font = self.font
 		self.img_text = self._font.render(msg, True, self.color)
@@ -176,6 +215,144 @@ class FreeText():
 	def draw(self):
 		"""绘制文本"""
 		self.screen.blit(self.img_text, (self.x, self.y))
+		
+class SuperText(FreeText):
+	"""超级文本类，继承自FreeText"""
+
+	def __init__(self, screen, coordinates, msg, font = 'SimHei', size = 24, color = (0, 0, 0), dsm = 1):
+		"""初始化文本:
+		screen -> 设置的窗口, coordinates[x,y] -> 文本左上角坐标, msg -> 文本, font -> 字体,
+		size -> 文本大小, color(R,G,B) -> 文本颜色"""
+		super().__init__(screen, coordinates, msg, font, size, color)
+		self.msg_len_next = -1
+		self.dsm = dsm
+		
+	def draw(self):
+		"""绘制文本"""
+		self.screen.blit(self.img_text, (self.x * self.dsm, self.y * self.dsm))
+
+	def __del__(self):
+		"""析构方法，返回文本左上角坐标"""
+		return super().get_attribute()
+
+	def __add__(self, data):
+		"""快捷改变文本内容，使用一个新的字符串(或SuperText类对象)扩展本对象的msg属性"""
+		if type(data) == SuperText:
+			super().set_msg(self.msg + data.get_attribute().get("msg"))
+		elif type(data) == str:
+			super().set_msg(self.msg + data)
+		else:
+			super().set_msg(self.msg + str(data))
+		return super().get_attribute().get("msg")
+
+	def __lshift__(self, data: tuple):
+		"""<< 快捷改变参数:
+		1个元数时改变字体大小，2个元素时改变位置，3个元素时改变颜色"""
+		if len(data) == 1:
+			super().set_size(data[0])
+		elif len(data) == 2:
+			super().set_coordinates(data)
+		elif len(data) == 3:
+			super().set_color(data)
+		else:
+			raise AssertionError("Redundant parameter -> 冗余参数")
+
+	def __len__(self):
+		return len(super().get_attribute())
+
+	def __iter__(self):
+		self.msg_len_next = -1
+		return super().get_attribute().get("msg")
+
+	def __next__(self):
+		self.msg_len_next += 1
+		if self.msg_len_next >= len(super().get_attribute().get("msg")):
+			raise StopIteration
+		return super().get_attribute().get("msg")[self.msg_len_next]
+
+class NaSuperText(SuperText):
+	def __init__(self, screen, coordinates, rect, msg, font = 'SimHei', size = 24, color = (0, 0, 0)):
+		"""初始化文本:
+		screen -> 设置的窗口, coordinates[x,y] -> 文本左上角坐标, msg -> 文本, rect -> 限定范围, font -> 字体,
+		size -> 文本大小, color(R,G,B) -> 文本颜色"""
+		super().__init__(screen, coordinates, msg, font, size, color)
+		self.rect = pygame.Rect(0, 0, rect[0], rect[1])
+		self.rect.centerx = self.x + rect[0] / 2
+		self.rect.centery = self.y + rect[1] / 2
+		self.msg_img = self._font.render(self.msg, True, self.color, None)
+		self.msg_img_rect = self.msg_img.get_rect()
+		self.msg_img_rect.center = self.rect.center
+		
+class MidSuperText(SuperText):
+	def __init__(self, screen, coordinates, rect, msg, font = 'SimHei', size = 24, color = (0, 0, 0), dsm = 1):
+		super().__init__(screen, coordinates, msg, font, size, color, dsm)
+		self.rect = pygame.Rect(0, 0, rect[0] * self.dsm, rect[1] * self.dsm)
+		self.rect.centerx = (self.x + rect[0] / 2)
+		self.rect.centery = (self.y + rect[1] / 2)
+		self.img_text = self._font.render(self.msg, True, self.color, (0, 0, 0)).convert()
+		self.img_text_rect = self.img_text.get_rect()
+		self.img_text_rect.center = self.rect.center
+		
+	def draw(self):
+		"""绘制文本"""
+		self.screen.blit(self.img_text, self.img_text_rect)
+		
+class FreeMsg():
+	def __init__(self, screen, coordinates, rect, msg, font, size, color, highlight, dsm):
+		self.screen = screen
+		self.coordinates = coordinates
+		self.rect = rect
+		self.msg = msg
+		self.font = font
+		self.size = size
+		self.color = color
+		self.highlight = highlight
+		self.dsm = dsm
+		self._font = pygame.font.Font(font, 20)
+		self.img_text = self._font.render(self.msg, True, color)
+		self.write = False
+		self.text = ""
+		self.rect_pos = [self.coordinates, (self.coordinates[0] + self.rect[0], self.coordinates[1]),
+		                 (), (self.coordinates[0] + self.rect[0], self.coordinates[1] + self.rect[1])]
+		
+	def get_coordinates(self):
+		return self.rect_pos
+		
+	def write_start(self):
+		self.write = True
+		
+	def write(self, text):
+		self.msg = self.msg + text
+		self.img_text = self._font.render(self.msg, True, self.color)
+		
+	def write_end(self):
+		self.write = False
+		
+	def write_type(self):
+		return self.write
+		
+	def check(self, text):
+		if self.write is True:
+			return False
+		else:
+			if self.msg == text:
+				return True
+			else:
+				return False
+			
+	def delete(self):
+		if self.write is not True:
+			self.text = ""
+			self.img_text = self._font.render("", True, self.color)
+			return True
+		else:
+			return False
+		
+	def draw(self):
+		self.screen.blit(self.img_text, (self.coordinates[0], self.coordinates[1]))
+		if self.write is True:
+			pygame.draw.rect(self.screen, self.highlight, (self.coordinates[0], self.coordinates[1],
+			                                               self.rect[0], self.rect[1]))
 
 class FreeButton():
 	"""自定义按钮类"""
@@ -184,16 +361,19 @@ class FreeButton():
 	display_button = True
 
 	def __init__(self, screen, coordinates, button_size, msg, font = 'SimHei', size = 24, border_width = 1, draw_border = True, draw_line = False, msg_tran = False,
-				 line_width = 1, button_color = (0, 0, 0), text_color = (255, 255, 255), border_color = (0, 0, 0), line_color = (255, 255, 255)):
+				 line_width = 1, button_color = (0, 0, 0), text_color = (255, 255, 255), border_color = (0, 0, 0), line_color = (255, 255, 255), dsm = 1):
 		"""初始化按钮:
 		screen -> 设置的窗口, coordinates[x,y] -> 按钮左上角坐标, button_size[x,y] -> 按钮大小, msg -> 文本, font -> 字体, size -> 文本大小, msg_tran -> 透明
 		border_width -> 边框宽度, draw_border -> 显示边框, draw_line -> 显示线, line_width -> 线宽度, button_color(R,G,B) -> 按钮背景色,
-		text_color(R,G,B) -> 文本颜色(前景色), border_color(R,G,B) -> 边框颜色, line_color(R,G,B) -> 线颜色"""
+		text_color(R,G,B) -> 文本颜色(前景色), border_color(R,G,B) -> 边框颜色, line_color(R,G,B) -> 线颜色, dsm -> 放大倍数"""
 		self.msg = msg
+		self.dsm = dsm
 		self.screen = screen
-		self.width = button_size[0]
-		self.height = button_size[1]
+		self.width = button_size[0] * self.dsm
+		self.height = button_size[1] * self.dsm
 		self.coordinates = coordinates
+		self.coordinates[0] *= self.dsm
+		self.coordinates[1] *= self.dsm
 		self.button_color = button_color
 		self.text_color = text_color
 		self.draw_line = draw_line
@@ -201,14 +381,11 @@ class FreeButton():
 		self.border = [border_width, border_color]
 		self.line = [line_width, line_color]
 		self.msg_tran = msg_tran
-		try:
-			self.font = pygame.font.SysFont(font, size)
-		except TypeError:
-			self.font = font
-		self.rect = pygame.Rect(0, 0, self.width, self.height)
-		self.rect.centerx = self.coordinates[0] + self.width / 2
-		self.rect.centery = self.coordinates[1] + self.height / 2
-		self.msg_img = self.font.render(self.msg, True, self.text_color, self.button_color)
+		self.font = pygame.font.Font(font, size)
+		self.rect = pygame.Rect(0, 0, self.width * self.dsm, self.height * self.dsm)
+		self.rect.centerx = (self.coordinates[0] + self.width / 2)
+		self.rect.centery = (self.coordinates[1] + self.height / 2)
+		self.msg_img = self.font.render(self.msg, True, self.text_color, self.button_color).convert()
 		if self.msg_tran is True: self.msg_img.set_colorkey(self.button_color)
 		self.msg_img_rect = self.msg_img.get_rect()
 		self.msg_img_rect.center = self.rect.center
@@ -278,6 +455,11 @@ class FreeButton():
 	def set_border_width(self, width):
 		"""改变边框宽度"""
 		self.border[0] = width
+		
+	def set_msg_tran(self, msg_tran):
+		if msg_tran is True:
+			self.msg_img.colorkeys(self.button_color)
+		self.msg_tran = msg_tran
 
 	def draw(self):
 		"""绘制按钮"""
@@ -287,7 +469,8 @@ class FreeButton():
 							 (self.coordinates[0] + self.width, self.coordinates[1] + self.height), self.line[0])
 			pygame.draw.line(self.screen, self.line[1], (self.coordinates[0] + self.width, self.coordinates[1]),
 							 (self.coordinates[0], self.coordinates[1] + self.height), self.line[0])
-		if self.msg_tran is True: self.msg_img.set_colorkey(self.button_color)
+		if self.msg_tran is True:
+			self.msg_img.set_colorkey(self.button_color)
 		self.screen.blit(self.msg_img, self.msg_img_rect)
 		if self.draw_border is True:
 			pygame.draw.rect(self.screen, self.border[1], (self.coordinates[0], self.coordinates[1],
@@ -473,72 +656,6 @@ class SuperCircle(FreeCircle, FreeAllCircle):
 		screen -> 设置的窗口, coordinates[x,y] -> 坐标, radius -> 半径, width -> 边宽度, color(R,G,B) -> 颜色"""
 		FreeAllCircle.draw_circle(screen, coordinates, radius, width, color)
 
-class SuperText(FreeText):
-	"""超级文本类，继承自FreeText"""
-
-	def __init__(self, screen, coordinates, msg, font = 'SimHei', size = 24, color = (0, 0, 0)):
-		"""初始化文本:
-		screen -> 设置的窗口, coordinates[x,y] -> 文本左上角坐标, msg -> 文本, font -> 字体,
-		size -> 文本大小, color(R,G,B) -> 文本颜色"""
-		super().__init__(screen, coordinates, msg, font, size, color)
-		self.msg_len_next = -1
-
-	def __del__(self):
-		"""析构方法，返回文本左上角坐标"""
-		return super().get_attribute()
-
-	def __add__(self, data):
-		"""快捷改变文本内容，使用一个新的字符串(或SuperText类对象)扩展本对象的msg属性"""
-		if type(data) == SuperText:
-			super().set_msg(self.msg + data.get_attribute().get("msg"))
-		elif type(data) == str:
-			super().set_msg(self.msg + data)
-		else:
-			super().set_msg(self.msg + str(data))
-		return super().get_attribute().get("msg")
-
-	def __lshift__(self, data: tuple):
-		"""<< 快捷改变参数:
-		1个元数时改变字体大小，2个元素时改变位置，3个元素时改变颜色"""
-		if len(data) == 1:
-			super().set_size(data[0])
-		elif len(data) == 2:
-			super().set_coordinates(data)
-		elif len(data) == 3:
-			super().set_color(data)
-		else:
-			raise AssertionError("Redundant parameter -> 冗余参数")
-
-	def __len__(self):
-		return len(super().get_attribute())
-
-	def __iter__(self):
-		self.msg_len_next = -1
-		return super().get_attribute().get("msg")
-
-	def __next__(self):
-		self.msg_len_next += 1
-		if self.msg_len_next >= len(super().get_attribute().get("msg")):
-			raise StopIteration
-		return super().get_attribute().get("msg")[self.msg_len_next]
-
-class NaSuperText(SuperText):
-	def __init__(self, screen, coordinates, rect, msg, font = 'SimHei', size = 24, color = (0, 0, 0)):
-		"""初始化文本:
-		screen -> 设置的窗口, coordinates[x,y] -> 文本左上角坐标, msg -> 文本, rect -> 限定范围, font -> 字体,
-		size -> 文本大小, color(R,G,B) -> 文本颜色"""
-		super().__init__(screen, coordinates, msg, font, size, color)
-		self.rect = pygame.Rect(0, 0, rect[0], rect[1])
-		self.rect.centerx = self.x + rect[0] / 2
-		self.rect.centery = self.y + rect[1] / 2
-		self.msg_img = self._font.render(self.msg, True, self.color, None)
-		self.msg_img_rect = self.msg_img.get_rect()
-		self.msg_img_rect.center = self.rect.center
-
-	def draw(self):
-		"""绘制文本"""
-		self.screen.blit(self.msg_img, self.msg_img_rect)
-
 class CircleButton(FreeCircle):
 	"""圆形按钮类, 继承自FreeCircle"""
 
@@ -546,20 +663,18 @@ class CircleButton(FreeCircle):
 	display_button = True
 
 	def __init__(self, screen, coordinates, radius, msg, font = 'SimHei', size = 24, width = 0, rect = (0, 0), angle = (0, 360), aa = True, draw_border = False,
-				 border_width = 1, color = (0, 0, 0), border_color = (0, 0, 0), msg_color = (255, 255, 255), button_color = (0, 0, 0), msg_tran = False):
+				 border_width = 1, color = (0, 0, 0), border_color = (0, 0, 0), msg_color = (255, 255, 255), button_color = (0, 0, 0), msg_tran = False, dsm = 1):
 		super().__init__(screen, coordinates, radius, width, rect, angle, aa,
 				 draw_border, border_width, color, border_color)
 		self.msg = msg
-		try:
-			self._font = pygame.font.SysFont(font, size)
-		except TypeError:
-			self._font = font
+		self.dsm = dsm
+		self._font = pygame.font.Font(font, size)
 		self.button_color = button_color
 		self.size = size
 		self.msg_color = msg_color
-		self.msgrect = pygame.Rect(0, 0, rect[0], rect[1])
-		self.msgrect.centerx = self.coordinates[0]
-		self.msgrect.centery = self.coordinates[1]
+		self.msgrect = pygame.Rect(0, 0, rect[0] * self.dsm, rect[1] * self.dsm)
+		self.msgrect.centerx = self.coordinates[0] * self.dsm
+		self.msgrect.centery = self.coordinates[1] * self.dsm
 		self.msg_tran = msg_tran
 		self.msg_img = self._font.render(self.msg, True, self.msg_color, self.button_color).convert()
 		if self.msg_tran is True: self.msg_img.set_colorkey(self.button_color)
@@ -594,7 +709,121 @@ class CircleButton(FreeCircle):
 	def set_msg_tran(self, msg_tran):
 		if msg_tran is True: self.msg_img.colorkeys(self.button_color)
 		self.msg_tran = msg_tran
+		
+class Particle(pygame.sprite.Sprite):
+    def __init__(self, pos, velocity, acceleration, lifespan):
+        super().__init__()
+        self.image = pygame.Surface((2, 2))
+        self.rect = self.image.get_rect()
+        self.pos = pygame.math.Vector2(pos)
+        self.velocity = pygame.math.Vector2(velocity)
+        self.acceleration = pygame.math.Vector2(acceleration)
+        self.lifespan = lifespan
 
+    def update(self):
+        self.velocity += self.acceleration
+        self.pos += self.velocity
+        self.lifespan -= 1
+
+        if self.lifespan <= 0:
+            self.kill()
+            
+class ParticleEngine:
+    def __init__(self):
+        self.particles = pygame.sprite.Group()
+
+    def generate_particles(self, num_particles, pos):
+        for _ in range(num_particles):
+            particle = Particle(pos, (0, 0), (0, 0.1), 100)
+            self.particles.add(particle)
+
+    def update_particles(self):
+        self.particles.update()
+
+    def draw_particles(self, surface):
+        self.particles.draw(surface)
+
+
+class Fireworks:
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.radius = 5
+        self.vx = random.uniform(-5, 5)
+        self.vy = random.uniform(-15, -5)
+        self.gravity = 0.5
+    
+    def update(self):
+        self.vx *= 0.98
+        self.vy += self.gravity
+        self.x += self.vx
+        self.y += self.vy
+    
+    def draw(self, surface):
+        pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.radius)
+
+
+def explode(x, y):
+    particles = []
+    for _ in range(100):
+        color = random.choice([RED, YELLOW, ORANGE, GREEN, BLUE, PURPLE])
+        particle = Fireworks(x, y, color)
+        particles.append(particle)
+    
+    return particles
+    
+def _array_mean(number_list):
+    number_list_len = len(number_list) - 1
+    number_list_array_mean = 0
+    for number in range(0, number_list_len):
+        number_list_array_mean += number_list[number]
+    try:
+        number_list_array_mean /= (number_list_len + 1)
+    except ZeroDivisionError:
+        number_list_array_mean = 0
+    return number_list_array_mean
+
+def array_mean_rgba(rgba):
+    r = int(_array_mean(rgba[0]))
+    g = int(_array_mean(rgba[1]))
+    b = int(_array_mean(rgba[2]))
+    a = int(_array_mean(rgba[3]))
+    return (r, g, b, a)
+
+def map_to_rgba(part):
+    r, g, b, a = [], [], [], []
+    for x in range(0, len(part) - 1):
+        for y in range(0, len(part) - 1):
+            r.append(part[x][y][0])
+            g.append(part[x][y][1])
+            b.append(part[x][y][2])
+            if len(part[x][y]) == 4:
+                a.append(part[x][y][3])
+    return r, g, b, a
+
+def image_blur_processing(image, level):
+    _size = image.get_size()
+    _old_image_pixels = [[None for _ in range(0, _size[0])] for _ in range(0, _size[1])]
+    _new_image_pixels = _old_image_pixels
+    boundary_width = level + 1
+    for x in range(0, _size[0]):
+        for y in range(0, _size[1]):
+            _old_image_pixels[x][y] = image.get_at((x, y))
+    for x in range(0, _size[0]):
+        for y in range(0, _size[1]):
+            ready_part = []
+            try:
+                for unit in _old_image_pixels[x - boundary_width : x + boundary_width]:
+                    ready_part.append(unit[y - boundary_width : y + boundary_width])
+                pixels = array_mean_rgba(map_to_rgba(ready_part))
+            except IndexError:
+                pixels = (125, 125, 125, 125)
+            _new_image_pixels[x][y] = pixels
+    for x in range(0, _size[0]):
+        for y in range(0, _size[1]):
+            image.set_at((x, y), _new_image_pixels[x][y])
+    return image
 
 if __name__ == '__main__':
 	print("freebird的pygame自定义模块\n", __all__)
