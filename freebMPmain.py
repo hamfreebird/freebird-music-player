@@ -56,7 +56,7 @@ except:
 mixer_init(frequency = 44100)
 pygame.init()
 freetype.init()
-frame_number = 80
+frame_number = 60
 pygame.display.set_caption("freebird music player")
 pygame.display.set_icon(pygame.image.load("assets\\freebird_music.ico"))
 pg_wind_music_index = 3
@@ -230,6 +230,7 @@ sea_music_list = False         # 是否显示文件列表
 sea_music_film = False         # 是否显示歌曲信息
 sea_setting_film = False       # 是否显示设置界面
 sea_home_page = False          # 是否显示主页
+sea_list_page = False          # 是否显示播放列表界面
 music_list_index = 0           # 文件列表索引，控制播放的音乐文件
 music_push_load = True         # 是否按下暂停键
 music_is_load = False          # 音乐文件是否载入
@@ -254,13 +255,14 @@ music_key_channels = 0         # 声道信息
 music_kry_length = 0           # 音乐长度
 use_music_key_lrc = False      # 是否使用标签中的歌词
 music_is_pure_music = False    # 音乐是纯音乐或没有歌词
-branch_lrc_text = False        # 是否进行歌词分行
+branch_lrc_text = True         # 是否进行歌词分行
 write_msg = False              # 是否写入输入框
 use_keyboard_to_set = True     # 是否使用键盘设置
 blur_image = None              # 模糊背景图像
-use_blur_image = True          # 是否使用模糊背景图像
+use_blur_image = False         # 是否使用模糊背景图像
 need_to_save = False           # 是否需要保存信息
 need_to_change_home = True     # 是否需要刷新主页
+now_play_list = None           # 当前播放列表
 
 # 获取音乐(歌词)文件夹中的文件列表
 if music_path_set == "":
@@ -295,6 +297,29 @@ try:
 except IndexError:
     pass
 
+# 专辑和播放列表相关参数
+other_music_list = []
+reduction_music_list = []
+sea_other_music_list = False
+
+# 播放列表初始化
+parameter = Parameter([music_path, music_lrc_path, music_list, music_lrc_list])
+playlist = PlayList()
+print("infor title : " + str(parameter.get_title()))
+print("playlist title : " + str(playlist.get_title()))
+music_last = parameter.get_music_last()
+music_last_not_load = True
+if music_last == "":
+    music_last_not_load = False
+if playlist.get_what_you_play_now()[0] != "":
+    # 如果有非默认播放列表在播放，使用该列表替换当前的默认播放列表
+    other_music_list = playlist.get(str(playlist.get_what_you_play_now()[0]))
+    reduction_music_list = music_list
+    music_list_index = playlist.get_what_you_play_now()[1]
+    sea_other_music_list = True
+else:
+    sea_other_music_list = False
+
 # 音乐播放的准备
 if music_list_index < len(music_list):
     # 载入第一个音乐
@@ -310,19 +335,40 @@ else:
     exit()
 
 def init_music_argument():
+    """
+    Initializes the music-related global variables.
+
+    This function sets the initial values for the music-related global variables.
+    It is called when the program starts or when the music settings need to be reset.
+    """
     global music_lrc_is_load, music_lrc_is_read, music_key_is_load, music_lrc_is_roll, \
         music_key_is_read, music_is_pure_music, need_to_change_home, need_to_save, move_text
-    music_lrc_is_load = False
-    music_lrc_is_read = False
-    music_key_is_load = False
-    music_lrc_is_roll = False
-    music_key_is_read = False
-    music_is_pure_music = False
-    need_to_change_home = True
-    need_to_save = False
-    move_text = True
+
+    # Set the initial values for the music-related global variables
+    music_lrc_is_load = False  # Indicates whether the music lyrics have been loaded
+    music_lrc_is_read = False  # Indicates whether the music lyrics have been read
+    music_key_is_load = False  # Indicates whether the music tag information has been loaded
+    music_lrc_is_roll = False  # Indicates whether the music lyrics are currently rolling
+    music_key_is_read = False  # Indicates whether the music tag information has been read
+    music_is_pure_music = False  # Indicates whether the music is pure (without lyrics)
+    need_to_change_home = True  # Indicates whether the home page needs to be changed
+    need_to_save = False  # Indicates whether the information needs to be saved
+    move_text = True  # Indicates whether the text (lyrics) should move
 
 def load_music(_music_list_index):
+    """
+    Load the music file at the specified index from the music list.
+
+    This function attempts to load the music file from the music list at the given index.
+    If the file is not found or there is an error loading the file, it tries to load the next file in the list.
+
+    Parameters:
+    _music_list_index (int): The index of the music file to load from the music list.
+
+    Returns:
+    int: The updated index of the music file to load from the music list. If the file at the given index is not found or
+     there is an error loading it, it returns the next index.
+    """
     try:
         music.load(music_path + music_list[_music_list_index])
     except (FileNotFoundError, pygame.error):
@@ -333,6 +379,21 @@ def load_music(_music_list_index):
     return _music_list_index
 
 def get_the_tag_information():
+    """
+    Retrieves and stores information about the music from the tag.
+
+    This function extracts the music's name, artists, albums, sample rate,
+    channels, and length from the tag. It also loads the music's image from
+    the tag and blurs it if required.
+
+    Parameters:
+    None. The function uses the global variables music_list_index, music_path,
+    and the mutagen library to extract the tag information.
+
+    Returns:
+    None. The function modifies the global variables music_key_name, music_key_arties,
+    music_key_albums, music_key_image, music_key_lrc, use_music_key_lrc, and blur_image.
+    """
     global music_key_introduction, music_key_image, music_lrc_line, music_key_lrc, use_music_key_lrc, blur_image
 
     music_key_introduction = ""
@@ -371,6 +432,16 @@ def get_the_tag_information():
     # finally_image = pygame.image.fromstring(pil_blured.tostring("raw", c_image_mode), c_size, c_image_mode)
 
 def get_information_from_tag(music_key):
+    """
+    Extracts and stores information about the music from the tag.
+
+    Parameters:
+    music_key (mutagen.File): The music file from which to extract the tag information.
+
+    Returns:
+    None. The function modifies the global variables music_key_name, music_key_arties,
+    music_key_albums, music_key_sample_rate, music_key_channels, and music_kry_length.
+    """
     global music_key_name, music_key_arties, music_key_albums, music_key_sample_rate, \
         music_key_channels, music_kry_length
     music_key_name = music_key.get("TIT2")  # 歌曲名
@@ -381,6 +452,20 @@ def get_information_from_tag(music_key):
     music_kry_length = music_key.info.length
 
 def get_image_and_lrc_from_tag(music_key):
+    """
+    Retrieves the image and lyrics from the tag of the music file.
+
+    This function extracts the image and lyrics from the tag of the music file.
+    It searches for the image data and lyrics text in the tag values.
+    If the lyrics text is found, it is stored in the global variable `music_key_lrc`
+    and the `use_music_key_lrc` flag is set to True.
+
+    Parameters:
+    music_key (mutagen.File): The music file from which to extract the tag information.
+
+    Returns:
+    tuple: A tuple containing the image data (as bytes) and the lyrics text (as a string).
+        """
     global music_key_lrc, use_music_key_lrc, music_lrc_line
     _bit_film = b"0"
     music_key_lrc = ""
@@ -408,18 +493,30 @@ def get_image_and_lrc_from_tag(music_key):
     return _bit_film, music_key_lrc
 
 def get_lrc_from_lrc_film(_lyrics_len):
+    """
+    Load lyrics from a lrc file based on the current music file.
+
+    Parameters:
+    _lyrics_len (int): The length of the lyrics area in the GUI.
+    """
     global music_lrc_text, music_lrc_is_load, music_lrc_line, music_lrc_draw, lrc_line_index
+
+    # If the lyrics are not extracted from the tag, search for a lrc file
     if use_music_key_lrc is False:
         for lrc_unit in music_lrc_list:
             try:
+                # Check if the lrc file name matches the current music file name
                 if lrc_unit[:len(lrc_unit) - 4] == music_list[music_list_index][:len(music_list[music_list_index]) - 4]:
                     try:
                         try:
+                            # Try to open the lrc file from the specified path
                             music_lrc_text = open(music_lrc_path + lrc_unit, "r+", encoding="utf-8")
                         except OSError:
+                            # If the file is not found in the specified path, try to open it from the current directory
                             music_lrc_text = open(lrc_unit, "r+", encoding="utf-8")
                         music_lrc_is_load = True
                     except SystemError:
+                        # If there is an error while opening the file, set the loading status to False
                         music_lrc_is_load = False
                         lyrics[int(_lyrics_len / 2)].set_msg("找到歌词文件但载入失败！")
                         music_lrc_line = []
@@ -429,10 +526,17 @@ def get_lrc_from_lrc_film(_lyrics_len):
                 print(str(format(time.time(), ".5f")) + "   ERROR : UnicodeEncodeError or PermissionError\n")
     else:
         music_lrc_is_load = True
+
     music_lrc_draw = []
     lrc_line_index = 0
 
 def use_tag_information_as_a_song_message():
+    """
+    Use the tag information (name, artist, album) to set the song message.
+
+    This function retrieves the music name and artist/album information from the tag and sets the corresponding GUI elements.
+    It also sets the music_key_is_read and music_lrc_is_load flags to True to indicate that the tag information has been used.
+    """
     global music_key_is_read, music_lrc_is_load
     if music_key_name is not None:
         music_name.set_msg(str(music_key_name))
@@ -444,6 +548,14 @@ def use_tag_information_as_a_song_message():
     music_lrc_is_load = True
 
 def use_filename_as_a_song_message():
+    """
+    Use the filename to set the song message.
+
+    This function extracts the song name and artist from the filename and sets the corresponding GUI elements.
+    The artist is assumed to be the part before the first hyphen, and the song name is the part after the first hyphen.
+    If the filename does not contain a hyphen, it sets both the song name and artist to "未知".
+    Finally, it sets the music_key_is_read flag to True to indicate that the tag information has been used.
+    """
     global music_key_is_read
     try:
         music_name_arties = music_list[music_list_index][:len(music_list[music_list_index]) - 4].split('-', 1)
@@ -455,8 +567,17 @@ def use_filename_as_a_song_message():
     music_key_is_read = True
 
 def read_the_lyrics():
+    """
+    This function reads the lyrics from the music file and prepares them for display.
+
+    Effects:
+    - Sets the lyrics text in the lyrics list.
+    - Initializes necessary variables for lyrics handling.
+    - Determines the type of lyrics (branch or ordinary) and sets the appropriate variables.
+    """
     global lyrics, music_lrc_line, music_lrc_draw, music_lrc_is_read, music_is_pure_music, \
         music_lrc_line_len, lrc_time, new_lyrics
+
     for _unit in lyrics:
         _unit.set_msg("")
 
@@ -467,8 +588,8 @@ def read_the_lyrics():
 
     _each_line_index = lyrics_len - 1
     _music_lrc_line_len_index = 0
-    lrc_time = []  # 每行歌词的时间
-    new_lyrics = []  # 每行歌词渲染后的图像
+    lrc_time = []  # Each line of lyrics' time
+    new_lyrics = []  # Each line of lyrics rendered as an image
 
     if branch_lrc_text is True:
         set_branch_lrc_text(_each_line_index, _music_lrc_line_len_index)
@@ -477,6 +598,15 @@ def read_the_lyrics():
     music_lrc_line_len = len(music_lrc_line)
 
 def init_music_lrc_line():
+    """
+    Initialize the music lyrics line.
+
+    This function reads the lyrics from the music file and prepares them for display.
+    If the 'use_music_key_lrc' flag is False, it reads the lyrics from the 'music_lrc_text' file.
+    The lyrics are stored in the 'music_lrc_line' list, and a corresponding flag is added to the 'music_lrc_draw' list.
+    If the 'use_music_key_lrc' flag is True, it initializes the 'music_lrc_draw' list with False flags.
+    Finally, if the 'music_lrc_text' is not a string, it closes the file.
+    """
     global music_lrc_line, music_lrc_text
     if use_music_key_lrc is False:
         music_lrc_line = []  # 用于存放歌词的每一行
@@ -494,6 +624,14 @@ def init_music_lrc_line():
         music_lrc_text.close()
 
 def add_music_text_information():
+    """
+    This function adds music information from the lyrics line to the music name and artist labels.
+    If the lyrics line does not contain the required tags, it tries to extract the information from the music file name.
+    If the information is not available, it sets the music name and artist labels to "未知".
+
+    Raises:
+    IndexError: If the lyrics line does not contain the required tags or if the music file name is not in the expected format.
+    """
     global music_is_pure_music, music_lrc_line_len
     try:
         if str(music_lrc_line[1][1:4]) == "ti:":
@@ -516,6 +654,18 @@ def add_music_text_information():
         music_lrc_line_len = len(music_lrc_line)
 
 def set_branch_lrc_text(each_line_index, music_lrc_line_len_index):
+    """
+    This function processes branch lyrics text. It splits each line into time and content,
+    and inserts the time into the time list. If the line contains both time and content,
+    it inserts the content into the next line.
+
+    Parameters:
+    each_line_index (int): The index of the current line in the lyrics text.
+    music_lrc_line_len_index (int): The current index in the processed lyrics text.
+
+    Returns:
+    int: The updated index in the processed lyrics text.
+    """
     index_offset_quantity = 0
     for each_index in range(0, len(music_lrc_line)):
         _this_line_time = 0
@@ -537,7 +687,7 @@ def set_branch_lrc_text(each_line_index, music_lrc_line_len_index):
                 music_lrc_line_len_index += 1
         else:
             try:
-                # 将每行歌词的时间导入时间列表
+                # Append the time to the time list
                 lrc_time.append(_this_line_time)
                 music_lrc_line_len_index += 1
             except (IndexError, TypeError, ValueError):
@@ -552,22 +702,52 @@ def set_branch_lrc_text(each_line_index, music_lrc_line_len_index):
     return music_lrc_line_len_index
 
 def set_ordinary_lrc_text(each_line_index, music_lrc_line_len_index):
+    """
+    This function processes and renders each line of the lyrics in the ordinary format.
+
+    Parameters:
+    each_line_index (int): The current index of the line being processed.
+    music_lrc_line_len_index (int): The current index of the processed line in the lyrics list.
+
+    Returns:
+    int: The updated index of the processed line in the lyrics list.
+
+    The function iterates through each line of the lyrics, extracts the time information,
+    and renders the lyrics text. It also handles any potential errors that may occur during the process.
+    """
     for each_line in music_lrc_line:
+        # If the current line index is out of range, break the loop.
         if each_line_index == 0 or each_line_index <= lyrics_len - len(music_lrc_line):
             break
         try:
-            # 将每行歌词的时间导入时间列表
+            # Extract the time information from the current line and append it to the time list.
             lrc_time.append(int(each_line[1:3]) * 60 + int(each_line[4:6]) + int(each_line[7:9]) / 100)
             music_lrc_line_len_index += 1
         except (IndexError, TypeError, ValueError):
+            # If any error occurs during the extraction process, increment the line index and continue.
             music_lrc_line_len_index += 1
+        # Render the lyrics text using the lrc_font and append it to the new_lyrics list.
         img_text = lrc_font.render(each_line[10:-1], True, THECOLORS.get("grey80"))
         # if img_text.get_width() > 630:
         # 	pass
         new_lyrics.append(img_text)
+    # Return the updated index of the processed line in the lyrics list.
     return music_lrc_line_len_index
 
 def flip_the_lyrics(_roll_two_lrc_line, _now_lyc_time):
+    """
+    This function handles the rolling of lyrics based on the current time.
+
+    Parameters:
+    _roll_two_lrc_line (bool): A flag indicating whether to roll two lines of lyrics.
+    _now_lyc_time (float): The current time of the music.
+
+    Returns:
+    bool: A flag indicating whether to roll two lines of lyrics.
+
+    The function iterates through the time list of lyrics. If the current time is within a certain range of a time unit,
+    it sets the highlight index, checks if the lyrics should roll, and updates the necessary variables.
+    """
     global music_lrc_is_roll, highlight_lrc_index, highlight_lrc_last, lrc_line_index, move_text
     for time_unit in lrc_time:
         # 遍历时间列表，判断是否到了下一行歌词的时间
@@ -592,7 +772,15 @@ def flip_the_lyrics(_roll_two_lrc_line, _now_lyc_time):
     return _roll_two_lrc_line
 
 def manipulate_the_music_object():
+    """
+    Manipulates the music object based on the current state and user interactions.
+
+    This function handles the music playback, including single-track looping,
+    normal track transition, transition to the end of the list, list looping,
+    and pausing the music when the user presses the 'Push' button.
+    """
     global music_is_load, music_list_index, music_player
+
     if music_is_load is False and loop_music is True and button_loop.display_button is True:  # 单曲循环
         music_list_index -= 1
         music_list_index = load_music(music_list_index)
@@ -629,6 +817,16 @@ def manipulate_the_music_object():
         music.pause()
 
 def if_cannot_use_lyrics():
+    """
+    This function checks if the lyrics can be used or not.
+
+    Raises:
+    IndexError: If the index is out of range.
+
+    The function checks if the length of the lyrics is less than 4 or if the last line of the lyrics contains "[99:00.00]".
+    If either of these conditions is true, it sets the message of the middle lyric to "未找到歌词！" or "纯音乐 请欣赏" respectively.
+    If an IndexError is raised, it sets the message of the middle lyric to "歌词文件未找到！".
+    """
     global music_is_pure_music, lrc_line_index
     try:
         if music_lrc_line_len < 4:
@@ -642,6 +840,18 @@ def if_cannot_use_lyrics():
         music_is_pure_music = True
 
 def set_the_lyrics():
+    """
+    This function sets the lyrics on the display.
+
+    The function checks if the lyrics can be used or not using the `if_cannot_use_lyrics()` function.
+    If the lyrics can be used, it checks the length of the lyrics and the index to write the lyrics.
+    If the length of the lyrics is less than or equal to the number of lines available on the display,
+    it writes the lyrics from the fourth line to the end of the display.
+    If the length of the lyrics is greater than the number of lines available on the display,
+    it writes the lyrics from the fourth line to the number of lines available on the display,
+    and updates the index to write the lyrics.
+    If an IndexError is raised, it decrements the index to write the lyrics.
+    """
     global music_is_pure_music, lrc_line_index
     if_cannot_use_lyrics()
     if music_lrc_line_len >= 4 and music_is_pure_music is False:
@@ -657,6 +867,16 @@ def set_the_lyrics():
                 lrc_line_index -= 1
 
 def continuous_rolling_lyrics():
+    """
+    This function handles the continuous rolling of lyrics on the display.
+
+    The function first checks if the lyrics can be used or not using the `if_cannot_use_lyrics()` function.
+    If the lyrics can be used, it checks the length of the lyrics and the index to write the lyrics.
+    If the length of the lyrics is less than or equal to the number of lines available on the display,
+    it writes the lyrics from the fourth line to the end of the display.
+    If the length of the lyrics is greater than the number of lines available on the display,
+    it does not write any lyrics, as continuous rolling is not applicable in this case.
+    """
     if_cannot_use_lyrics()
     if music_lrc_line_len >= 4 and music_is_pure_music is False:
         if music_lrc_line_len - 4 <= lyrics_len:
@@ -666,6 +886,13 @@ def continuous_rolling_lyrics():
             pass
 
 def set_the_film_list():
+    """
+    This function sets the names of the music files in the list on the display.
+
+    The function uses the global variable 'music_list' and 'lyrics_len' to get the list of music files and the number of lines in the display, respectively.
+    It then iterates over the list of music files and sets the names of the files on the display.
+    If the number of music files is greater than the number of lines in the display, it uses a scrolling mechanism to display all the files.
+    """
     global lrc_line_index
     if len(music_list) <= lyrics_len:
         for write_index in range(0, len(music_list)):
@@ -730,13 +957,15 @@ def set_the_home_page():
     lyrics[lyrics_len - 7].set_msg("top1 -> " + music_time_top_1)
     lyrics[lyrics_len - 8].set_msg("top2 -> " + music_time_top_2)
     lyrics[lyrics_len - 9].set_msg("top3 -> " + music_time_top_3)
-
-parameter = Parameter([music_path, music_lrc_path, music_list, music_lrc_list])
-print("infor title : " + str(parameter.get_title()))
-music_last = parameter.get_music_last()
-music_last_not_load = True
-if music_last == "":
-    music_last_not_load = False
+    
+def set_the_list_page():
+    global now_play_list
+    lyrics[lyrics_len - 1].set_msg("播放列表选择页面")
+    lyrics[lyrics_len - 3].set_msg("-<选择列表>-")
+    lyrics[lyrics_len - 5].set_msg("加入列表或移出列表")
+    lyrics[lyrics_len - 6].set_msg("创建列表或删除列表")
+    lyrics[lyrics_len - 8].set_msg("当前播放列表")
+    lyrics[lyrics_len - 9].set_msg("->  " + str(now_play_list))
 
 # 主循环
 while True:
@@ -784,31 +1013,42 @@ while True:
         elif 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
                 5 < pygame.mouse.get_pos()[1] < 40 and event.type == pygame.MOUSEBUTTONDOWN:
             # 判断用户是否点击了歌曲文件名
-            if sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False:
+            if sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False and sea_list_page is False:
                 sea_music_list = True
                 sea_music_film = False
                 sea_setting_film = False
                 sea_home_page = False
-            elif sea_music_list is True and sea_music_film is False and sea_setting_film is False and sea_home_page is False:
+                sea_list_page = False
+            elif sea_music_list is True and sea_music_film is False and sea_setting_film is False and sea_home_page is False and sea_list_page is False:
                 sea_music_list = False
                 sea_music_film = True
                 sea_setting_film = False
                 sea_home_page = False
-            elif sea_music_list is False and sea_music_film is True and sea_setting_film is False and sea_home_page is False:
+                sea_list_page = False
+            elif sea_music_list is False and sea_music_film is True and sea_setting_film is False and sea_home_page is False and sea_list_page is False:
                 sea_music_list = False
                 sea_music_film = False
                 sea_setting_film = True
                 sea_home_page = False
-            elif sea_music_list is False and sea_music_film is False and sea_setting_film is True and sea_home_page is False:
+                sea_list_page = False
+            elif sea_music_list is False and sea_music_film is False and sea_setting_film is True and sea_home_page is False and sea_list_page is False:
                 sea_music_list = False
                 sea_music_film = False
                 sea_setting_film = False
                 sea_home_page = True
+                sea_list_page = False
+            elif sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is True and sea_list_page is False:
+                sea_music_list = False
+                sea_music_film = False
+                sea_setting_film = False
+                sea_home_page = False
+                sea_list_page = True
             else:
                 sea_music_list = False
                 sea_music_film = False
                 sea_setting_film = False
                 sea_home_page = False
+                sea_list_page = False
             move_text = True
         elif event.type == pygame.KEYDOWN and use_keyboard_to_set is True:   # 键盘事件
             if event.key == pygame.K_b:
@@ -1037,6 +1277,22 @@ while True:
                         music_is_load = True
                         init_music_argument()
                         music.play()
+        elif sea_list_page is True:
+            if freebutton.position_button_class(lyrics[lyrics_len - 3], pygame.mouse.get_pos()) is True:
+                lyrics[lyrics_len - 3].set_msg_color(THECOLORS.get("grey100"))
+                lyrics[lyrics_len - 3].check_button = True
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pass
+            elif freebutton.position_button_class(lyrics[lyrics_len - 5], pygame.mouse.get_pos()) is True:
+                lyrics[lyrics_len - 5].set_msg_color(THECOLORS.get("grey100"))
+                lyrics[lyrics_len - 5].check_button = True
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pass
+            elif freebutton.position_button_class(lyrics[lyrics_len - 6], pygame.mouse.get_pos()) is True:
+                lyrics[lyrics_len - 6].set_msg_color(THECOLORS.get("grey100"))
+                lyrics[lyrics_len - 6].check_button = True
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pass
         else:
             for unit in button:
                 unit.check_button = False  # 这里的check_button是用于控制按钮是否被按下的，上面的代码中也有
@@ -1100,7 +1356,7 @@ while True:
         for unit in lyrics:
             unit.set_msg("")
 
-    if sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False and move_text is True:
+    if sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False and sea_list_page is False and move_text is True:
         set_the_lyrics()
 
     elif sea_music_list is True and move_text is True:
@@ -1114,6 +1370,9 @@ while True:
 
     elif sea_home_page is True and move_text is True:
         set_the_home_page()
+        
+    elif sea_list_page is True and move_text is True:
+        set_the_list_page()
 
     move_text = False
 
@@ -1247,6 +1506,3 @@ while True:
             screen.blit(pg_wind_music[0], (0, 0))
     clock.tick(frame_number)  # 控制帧数
     dirty_rects.clear()
-
-# if __name__ == "__main__":
-# 	pass
