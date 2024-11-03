@@ -7,27 +7,26 @@ Copyright 2023 freebird
 import os
 import sys
 import time
-import pickle # 存储
 import dialog_box
 try:
     import pygame
-    from pygame.mixer import init as mixer_init  # 用于初始化音乐模块
-    import pygame.freetype as freetype  # 新的文字显示（未用）
+    from pygame.mixer import init as mixer_init
+    import pygame.freetype as freetype
     from pygame.colordict import THECOLORS
     from pygame.draw import rect, aaline
 except ModuleNotFoundError:
     dialog_box.error_msg("can't find pygame module!")
-    # 下载所需模块
-
+    exit()
 from play_list import *
 from freepygame import freetext, freebutton, freeicon, freetransformation
 from io import text_encoding
-# from PIL import Image, ImageFilter
 import mutagen
-# import cv2
-# import numpy
-# import heartrate``
-# heartrate.trace(browser=True)
+try:
+    import librosa
+    import librosa.display
+except ModuleNotFoundError:
+    dialog_box.error_msg("can't find librosa module!")
+    exit()
 
 # 统一编码
 text_encoding("utf-8")
@@ -56,7 +55,7 @@ except:
 mixer_init(frequency = 44100)
 pygame.init()
 freetype.init()
-frame_number = 60
+frame_number = 80
 pygame.display.set_caption("freebird music player")
 pygame.display.set_icon(pygame.image.load("assets\\freebird_music.ico"))
 pg_wind_music_index = 3
@@ -141,7 +140,7 @@ try:
                                        color=THECOLORS.get("grey100"), dsm=dsm)
     pleiades_text = freetext.SuperText(screen, (10, display_size[1] - 50), "Paper ship", "assets\\segoepr.ttf",
                                        size=16, color=THECOLORS.get("grey100"), dsm=dsm)
-    version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.3.3", "assets\\simhei.ttf",
+    version_text = freetext.SuperText(screen, (10, display_size[1] - 20), "v 1.3.4", "assets\\simhei.ttf",
                                       size=15, color=THECOLORS.get("grey95"), dsm=dsm)
     music_name = freetext.SuperText(screen, (5, 42), "《》", "assets\\simhei.ttf", size=19,
                                     color=THECOLORS.get("grey100"), dsm=dsm)
@@ -183,6 +182,7 @@ try:
             pleiades_text]
     set_button = [button_set_highlight, button_set_branch, button_set_Keyboard, button_set_image]
 except FileNotFoundError:
+    # film check
     dialog_box.waring_msg("Missing resource file!")
     if dialog_box.ask_msg("Want to check the resources file?") is True:
         _all_assets = os.listdir(path = "assets")
@@ -231,6 +231,7 @@ sea_music_film = False         # 是否显示歌曲信息
 sea_setting_film = False       # 是否显示设置界面
 sea_home_page = False          # 是否显示主页
 sea_list_page = False          # 是否显示播放列表界面
+sea_music_spectrum = False     # 是否显示频谱图
 music_list_index = 0           # 文件列表索引，控制播放的音乐文件
 music_push_load = True         # 是否按下暂停键
 music_is_load = False          # 音乐文件是否载入
@@ -263,6 +264,11 @@ use_blur_image = False         # 是否使用模糊背景图像
 need_to_save = False           # 是否需要保存信息
 need_to_change_home = True     # 是否需要刷新主页
 now_play_list = None           # 当前播放列表
+r_per_second_film = []         # 每秒频谱图
+now_music_spectrum = []        # 当前频谱的柱状显示
+cal_music_spectrum = False     # 是否计算频谱图
+last_play_second = 0           # 上一个播放的秒数
+
 
 # 获取音乐(歌词)文件夹中的文件列表
 if music_path_set == "":
@@ -342,7 +348,7 @@ def init_music_argument():
     It is called when the program starts or when the music settings need to be reset.
     """
     global music_lrc_is_load, music_lrc_is_read, music_key_is_load, music_lrc_is_roll, \
-        music_key_is_read, music_is_pure_music, need_to_change_home, need_to_save, move_text
+        music_key_is_read, music_is_pure_music, need_to_change_home, need_to_save, move_text, cal_music_spectrum
 
     # Set the initial values for the music-related global variables
     music_lrc_is_load = False  # Indicates whether the music lyrics have been loaded
@@ -353,6 +359,7 @@ def init_music_argument():
     music_is_pure_music = False  # Indicates whether the music is pure (without lyrics)
     need_to_change_home = True  # Indicates whether the home page needs to be changed
     need_to_save = False  # Indicates whether the information needs to be saved
+    cal_music_spectrum = True
     move_text = True  # Indicates whether the text (lyrics) should move
 
 def load_music(_music_list_index):
@@ -687,7 +694,7 @@ def set_branch_lrc_text(each_line_index, music_lrc_line_len_index):
                 music_lrc_line_len_index += 1
         else:
             try:
-                # Append the time to the time list
+                # 将时间附加到时间列表
                 lrc_time.append(_this_line_time)
                 music_lrc_line_len_index += 1
             except (IndexError, TypeError, ValueError):
@@ -839,6 +846,47 @@ def if_cannot_use_lyrics():
         lyrics[int(lyrics_len / 2)].set_msg("歌词文件未找到！")
         music_is_pure_music = True
 
+def get_music_spectrum():
+    global music_list_index, music_kry_length, r_per_second_film
+    r_per_second_film = []
+    _r_music_film, sr = librosa.load(music_path + music_list[music_list_index])
+    _r_per_second = int(len(_r_music_film) / int(music_kry_length))
+    _start, _end, _i = 0, _r_per_second, 0
+    for _second in _r_music_film:
+        try:
+            r_per_second_film.append(_r_music_film[_start:_end])
+        except IndexError:
+            break
+        _start += _r_per_second
+        _end += _r_per_second
+        _i += 1
+        if _i >= int(music_kry_length):
+            break
+    print(len(r_per_second_film))
+
+def cal_second_music_spectrum():
+    global r_per_second_film, now_music_spectrum
+    now_music_spectrum = []
+    _now_r_list = []
+    _music_spectrum_number = 400
+    try:
+        _now_r_list = r_per_second_film[int(music.get_pos() / 1000)]
+    except IndexError:
+        return False
+    _one_object_number = int(len(_now_r_list) / _music_spectrum_number)
+    _start, _end, _i = 0, _one_object_number, 0
+    for _second in _now_r_list:
+        try:
+            now_music_spectrum.append(int(_now_r_list[_start:_end][int(_one_object_number / 2)] * 1000))
+        except IndexError:
+            break
+        _start += _one_object_number
+        _end += _one_object_number
+        _i += 1
+        if _i >= _music_spectrum_number:
+            break
+    return True
+
 def set_the_lyrics():
     """
     This function sets the lyrics on the display.
@@ -960,12 +1008,16 @@ def set_the_home_page():
     
 def set_the_list_page():
     global now_play_list
-    lyrics[lyrics_len - 1].set_msg("播放列表选择页面")
-    lyrics[lyrics_len - 3].set_msg("-<选择列表>-")
-    lyrics[lyrics_len - 5].set_msg("加入列表或移出列表")
-    lyrics[lyrics_len - 6].set_msg("创建列表或删除列表")
-    lyrics[lyrics_len - 8].set_msg("当前播放列表")
-    lyrics[lyrics_len - 9].set_msg("->  " + str(now_play_list))
+    lyrics[lyrics_len - 1].set_msg("请忽略此页，再翻一页到频谱")
+    # lyrics[lyrics_len - 3].set_msg("-<选择列表>-")
+    # lyrics[lyrics_len - 5].set_msg("加入列表或移出列表")
+    # lyrics[lyrics_len - 6].set_msg("创建列表或删除列表")
+    # lyrics[lyrics_len - 8].set_msg("当前播放列表")
+    # lyrics[lyrics_len - 9].set_msg("->  " + str(now_play_list))
+    lyrics[lyrics_len - 11].set_msg("还未完工")
+
+def set_the_music_spectrum():
+    lyrics[lyrics_len - 1].set_msg("频谱图页面/每秒")
 
 # 主循环
 while True:
@@ -1013,42 +1065,61 @@ while True:
         elif 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
                 5 < pygame.mouse.get_pos()[1] < 40 and event.type == pygame.MOUSEBUTTONDOWN:
             # 判断用户是否点击了歌曲文件名
-            if sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False and sea_list_page is False:
+            if (sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False
+                    and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = True
                 sea_music_film = False
                 sea_setting_film = False
                 sea_home_page = False
                 sea_list_page = False
-            elif sea_music_list is True and sea_music_film is False and sea_setting_film is False and sea_home_page is False and sea_list_page is False:
+                sea_music_spectrum = False
+            elif (sea_music_list is True and sea_music_film is False and sea_setting_film is False and sea_home_page is False
+                  and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = True
                 sea_setting_film = False
                 sea_home_page = False
                 sea_list_page = False
-            elif sea_music_list is False and sea_music_film is True and sea_setting_film is False and sea_home_page is False and sea_list_page is False:
+                sea_music_spectrum = False
+            elif (sea_music_list is False and sea_music_film is True and sea_setting_film is False and sea_home_page is False
+                  and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = False
                 sea_setting_film = True
                 sea_home_page = False
                 sea_list_page = False
-            elif sea_music_list is False and sea_music_film is False and sea_setting_film is True and sea_home_page is False and sea_list_page is False:
+                sea_music_spectrum = False
+            elif (sea_music_list is False and sea_music_film is False and sea_setting_film is True and sea_home_page is False
+                  and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = False
                 sea_setting_film = False
                 sea_home_page = True
                 sea_list_page = False
-            elif sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is True and sea_list_page is False:
+                sea_music_spectrum = False
+            elif (sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is True
+                  and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = False
                 sea_setting_film = False
                 sea_home_page = False
                 sea_list_page = True
+                sea_music_spectrum = False
+            elif (sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False
+                  and sea_list_page is True and sea_music_spectrum is False):
+                sea_music_list = False
+                sea_music_film = False
+                sea_setting_film = False
+                sea_home_page = False
+                sea_list_page = False
+                sea_music_spectrum = True
             else:
                 sea_music_list = False
                 sea_music_film = False
                 sea_setting_film = False
                 sea_home_page = False
                 sea_list_page = False
+                sea_music_spectrum = False
             move_text = True
         elif event.type == pygame.KEYDOWN and use_keyboard_to_set is True:   # 键盘事件
             if event.key == pygame.K_b:
@@ -1282,17 +1353,17 @@ while True:
                 lyrics[lyrics_len - 3].set_msg_color(THECOLORS.get("grey100"))
                 lyrics[lyrics_len - 3].check_button = True
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    pass
+                    print("x")
             elif freebutton.position_button_class(lyrics[lyrics_len - 5], pygame.mouse.get_pos()) is True:
                 lyrics[lyrics_len - 5].set_msg_color(THECOLORS.get("grey100"))
                 lyrics[lyrics_len - 5].check_button = True
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    pass
+                    print("x2")
             elif freebutton.position_button_class(lyrics[lyrics_len - 6], pygame.mouse.get_pos()) is True:
                 lyrics[lyrics_len - 6].set_msg_color(THECOLORS.get("grey100"))
                 lyrics[lyrics_len - 6].check_button = True
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    pass
+                    print("X3")
         else:
             for unit in button:
                 unit.check_button = False  # 这里的check_button是用于控制按钮是否被按下的，上面的代码中也有
@@ -1317,6 +1388,15 @@ while True:
         manipulate_the_music_object()
     except pygame.error:
         music_list_index += 1
+
+    now_music_time = int(music.get_pos() / 1000)
+    if cal_music_spectrum is True:
+        get_music_spectrum()
+        cal_music_spectrum = False
+    if last_play_second != now_music_time:
+        last_play_second = now_music_time
+        if cal_second_music_spectrum() is False:
+            now_music_spectrum = []
 
     # 获取标签信息
     if music_is_load is True and music_key_is_load is False:
@@ -1356,7 +1436,8 @@ while True:
         for unit in lyrics:
             unit.set_msg("")
 
-    if sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False and sea_list_page is False and move_text is True:
+    if (sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False and
+            sea_list_page is False and sea_music_spectrum is False and move_text is True):
         set_the_lyrics()
 
     elif sea_music_list is True and move_text is True:
@@ -1370,9 +1451,12 @@ while True:
 
     elif sea_home_page is True and move_text is True:
         set_the_home_page()
-        
+
     elif sea_list_page is True and move_text is True:
         set_the_list_page()
+
+    elif sea_music_spectrum is True and move_text is True:
+        set_the_music_spectrum()
 
     move_text = False
 
@@ -1409,7 +1493,8 @@ while True:
     # 				lyrics[lyrics_len - write_index - 1].set_msg(str(music_list[write_index + lrc_line_index]))
     # 		except IndexError:
     # 			lrc_line_index -= 1
-    if sea_setting_film is False and sea_home_page is False and show_highlight is True:
+    if (sea_setting_film is False and sea_home_page is False and sea_list_page is False and
+            sea_music_spectrum is False and show_highlight is True):
         if sea_music_list is False and sea_music_film is False and music_is_pure_music is False:
             if len(music_lrc_line) <= 14:
                 line_index = 14 - highlight_lrc_index
@@ -1470,7 +1555,6 @@ while True:
             music_name_text.set_msg("文件名称 -> " + str(music_list[music_list_index]))
         else:
             music_name_text.set_msg("文件名称 -> " + str(music_list[music_list_index])[:65] + "...")
-    now_music_time = int(music.get_pos() / 1000)
     time_num.set_msg(str(now_music_time) + "s")
     if now_music_time == 60:
         need_to_save = True
@@ -1487,6 +1571,23 @@ while True:
         playback_schedule = 720 * (now_music_time / music_kry_length)
         pygame.draw.aaline(screen, THECOLORS.get("grey50"), (0, 479), (playback_schedule, 479))
         pygame.draw.aaline(screen, THECOLORS.get("grey50"), (0, 478), (playback_schedule, 478))
+    if sea_music_spectrum is True:
+        height_down = display_size[1] - 110
+        height_top = 100
+        height = height_down - height_top
+        weight_left = 10
+        weight_right = 625
+        weight = weight_right - weight_left
+        pygame.draw.rect(screen, THECOLORS.get("grey50"), (weight_left, height_top, weight, height), 1)
+        each_width = weight / 400
+        each_i = 0
+        for _each in now_music_spectrum:
+            if _each >= (height_down - height_top):
+                _each = height_down - height_top
+            pygame.draw.rect(screen, THECOLORS.get("grey80"), (weight_left + (each_width * each_i),
+                                                               (height_down - _each),
+                                                               each_width, _each))
+            each_i += 1
 
     # 窗口刷新，准备再次遍历事件
     # pygame.display.update(dirty_rects)
