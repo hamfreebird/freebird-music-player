@@ -169,8 +169,8 @@ try:
     msg_music_path = freetext.FreeMsg(screen, (100, 100), (20, 200), "", "assets\\simhei.ttf", 20,
                                       THECOLORS.get("grey80"), THECOLORS.get("grey0"), 1)
     lyrics = [freebutton.FreeButton(screen, [5, display_size[1] - 113 - 20 * index], [display_size[0] - 90, 15], "",
-                                    "assets\\simhei.ttf", size=16, button_color=THECOLORS.get("grey25"), text_color=THECOLORS.get("grey95"),
-                                    draw_border=False, msg_tran = True, dsm = dsm)
+                                    "assets\\simhei.ttf", size=16, button_color=THECOLORS.get("grey25"),
+                                    text_color=THECOLORS.get("grey95"), draw_border=False, msg_tran = True, dsm = dsm)
               for index in range(0, int((display_size[1] - 75 - 40) / 20) - 2)]  # 歌词显示列表
     other_lyrics = [freetext.SuperText(screen, [5, (display_size[1] - 133 - 20 * index)], "", "assets\\simhei.ttf",
                                  size=16, color=THECOLORS.get("grey80"), dsm=dsm)
@@ -198,7 +198,7 @@ except FileNotFoundError:
                     continue
                 else:
                     _lose_assets.append(_assets)
-        if _lose_assets == []:
+        if not _lose_assets:
             dialog_box.info_msg("There is no resource file deletion")
         else:
             dialog_box.info_msg("...")
@@ -334,6 +334,7 @@ if music_list_index < len(music_list):
     vol_num.set_msg(str(music.get_volume() * 100))  # 音量设置
     music_player = False    # 不播放
     music_is_load = True
+    cal_music_spectrum = True
     move_text = True
 else:
     dialog_box.waring_msg("Please join the music folder first!")
@@ -541,8 +542,10 @@ def use_tag_information_as_a_song_message():
     """
     Use the tag information (name, artist, album) to set the song message.
 
-    This function retrieves the music name and artist/album information from the tag and sets the corresponding GUI elements.
-    It also sets the music_key_is_read and music_lrc_is_load flags to True to indicate that the tag information has been used.
+    This function retrieves the music name and artist/album information from
+    the tag and sets the corresponding GUI elements.
+    It also sets the music_key_is_read and music_lrc_is_load flags to True
+    to indicate that the tag information has been used.
     """
     global music_key_is_read, music_lrc_is_load
     if music_key_name is not None:
@@ -637,7 +640,8 @@ def add_music_text_information():
     If the information is not available, it sets the music name and artist labels to "未知".
 
     Raises:
-    IndexError: If the lyrics line does not contain the required tags or if the music file name is not in the expected format.
+    IndexError: If the lyrics line does not contain the required tags or if the music file name
+    is not in the expected format.
     """
     global music_is_pure_music, music_lrc_line_len
     try:
@@ -830,8 +834,10 @@ def if_cannot_use_lyrics():
     Raises:
     IndexError: If the index is out of range.
 
-    The function checks if the length of the lyrics is less than 4 or if the last line of the lyrics contains "[99:00.00]".
-    If either of these conditions is true, it sets the message of the middle lyric to "未找到歌词！" or "纯音乐 请欣赏" respectively.
+    The function checks if the length of the lyrics is less than 4 or if the last line
+    of the lyrics contains "[99:00.00]".
+    If either of these conditions is true, it sets the message of the middle lyric
+    to "未找到歌词！" or "纯音乐 请欣赏" respectively.
     If an IndexError is raised, it sets the message of the middle lyric to "歌词文件未找到！".
     """
     global music_is_pure_music, lrc_line_index
@@ -847,6 +853,24 @@ def if_cannot_use_lyrics():
         music_is_pure_music = True
 
 def get_music_spectrum():
+    """
+    This function calculates and stores the music spectrum for each second.
+
+    Parameters:
+    music_list_index (int): The index of the current music file in the music list.
+    music_kry_length (float): The length of the music file in seconds.
+    r_per_second_film (list): A list to store the music spectrum for each second.
+
+    Returns:
+    None. The function modifies the global variable `r_per_second_film`.
+
+    The function uses the `librosa.load()` function to load the music file specified by
+    `music_path + music_list[music_list_index]`. It then calculates the number of samples
+    per second by dividing the total number of samples by the music length in seconds.
+    It initializes variables `_start`, `_end`, and `_i` to iterate over the music file.
+    For each second in the music file, the function appends the spectrum of that second to
+    `r_per_second_film`. The iteration stops when the number of seconds reaches the music length.
+    """
     global music_list_index, music_kry_length, r_per_second_film
     r_per_second_film = []
     _r_music_film, sr = librosa.load(music_path + music_list[music_list_index])
@@ -862,9 +886,25 @@ def get_music_spectrum():
         _i += 1
         if _i >= int(music_kry_length):
             break
-    print(len(r_per_second_film))
 
 def cal_second_music_spectrum():
+    """
+    Calculates and stores the music spectrum for each second.
+
+    Parameters:
+    r_per_second_film (list): A list containing the music spectrum for each second.
+    music (pygame.mixer.music): The music object used to play the audio file.
+
+    Returns:
+    bool: True if the music spectrum for the current second is successfully calculated and stored.
+        False if an IndexError occurs while accessing the music spectrum for the current second.
+
+    The function calculates the music spectrum for each second by accessing the corresponding
+    spectrum from the `r_per_second_film` list. It then stores the calculated spectrum in the
+    `now_music_spectrum` list. The function returns True if the music spectrum for the current
+    second is successfully calculated and stored. If an IndexError occurs while accessing the
+    music spectrum for the current second, the function returns False.
+    """
     global r_per_second_film, now_music_spectrum
     now_music_spectrum = []
     _now_r_list = []
@@ -937,9 +977,11 @@ def set_the_film_list():
     """
     This function sets the names of the music files in the list on the display.
 
-    The function uses the global variable 'music_list' and 'lyrics_len' to get the list of music files and the number of lines in the display, respectively.
+    The function uses the global variable 'music_list' and 'lyrics_len' to get the list of music files and
+    the number of lines in the display, respectively.
     It then iterates over the list of music files and sets the names of the files on the display.
-    If the number of music files is greater than the number of lines in the display, it uses a scrolling mechanism to display all the files.
+    If the number of music files is greater than the number of lines in the display, it uses a scrolling
+    mechanism to display all the files.
     """
     global lrc_line_index
     if len(music_list) <= lyrics_len:
@@ -955,6 +997,12 @@ def set_the_film_list():
             lrc_line_index -= 1
 
 def set_the_information():
+    """
+    This function sets the music information on the display.
+
+    The function sets the names of the music file, artist, album, sample rate, number of channels,
+    music length, and the ID3v2 version on the display.
+    """
     prefix = "                                    "
     lyrics[lyrics_len - 2].set_msg(prefix + "歌曲名")
     lyrics[lyrics_len - 3].set_msg(prefix + "->  " + str(music_key_name))
@@ -972,8 +1020,11 @@ def set_the_settings():
     lyrics[lyrics_len - 1].set_msg("滚动歌词       歌词分行       键盘快捷键     背景切换")
 
 def set_the_home_page():
-    music_last = parameter.get_music_last()
-    music_last_name = music_last.split("/")[-1][:-4]
+    """
+    This function sets the home page display with the last played music,
+    the top 3 most frequently played songs, and other relevant information.
+    """
+    music_last_name = parameter.get_music_last().split("/")[-1][:-4]
     music_time = parameter.get_music_time().items()
     music_time_name, music_time_num = [], []
     for unit in music_time:
@@ -1019,6 +1070,7 @@ def set_the_list_page():
 def set_the_music_spectrum():
     lyrics[lyrics_len - 1].set_msg("频谱图页面/每秒")
 
+
 # 主循环
 while True:
     # 设置状态栏
@@ -1042,7 +1094,7 @@ while True:
             except FileNotFoundError:
                 pass
             freetype.quit()
-            music.stopsave_parameter
+            music.stop()
             pygame.quit()           # 退出pygame引擎
             sys.exit()              # 退出程序
         elif event.type == pygame.WINDOWEXPOSED and music_player is False:
@@ -1065,7 +1117,8 @@ while True:
         elif 5 < pygame.mouse.get_pos()[0] < display_size[0] - 85 and \
                 5 < pygame.mouse.get_pos()[1] < 40 and event.type == pygame.MOUSEBUTTONDOWN:
             # 判断用户是否点击了歌曲文件名
-            if (sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False
+            if (sea_music_list is False and sea_music_film is False and
+                    sea_setting_film is False and sea_home_page is False
                     and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = True
                 sea_music_film = False
@@ -1073,7 +1126,8 @@ while True:
                 sea_home_page = False
                 sea_list_page = False
                 sea_music_spectrum = False
-            elif (sea_music_list is True and sea_music_film is False and sea_setting_film is False and sea_home_page is False
+            elif (sea_music_list is True and sea_music_film is False and
+                  sea_setting_film is False and sea_home_page is False
                   and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = True
@@ -1081,7 +1135,8 @@ while True:
                 sea_home_page = False
                 sea_list_page = False
                 sea_music_spectrum = False
-            elif (sea_music_list is False and sea_music_film is True and sea_setting_film is False and sea_home_page is False
+            elif (sea_music_list is False and sea_music_film is True and
+                  sea_setting_film is False and sea_home_page is False
                   and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = False
@@ -1089,7 +1144,8 @@ while True:
                 sea_home_page = False
                 sea_list_page = False
                 sea_music_spectrum = False
-            elif (sea_music_list is False and sea_music_film is False and sea_setting_film is True and sea_home_page is False
+            elif (sea_music_list is False and sea_music_film is False and
+                  sea_setting_film is True and sea_home_page is False
                   and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = False
@@ -1097,7 +1153,8 @@ while True:
                 sea_home_page = True
                 sea_list_page = False
                 sea_music_spectrum = False
-            elif (sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is True
+            elif (sea_music_list is False and sea_music_film is False and
+                  sea_setting_film is False and sea_home_page is True
                   and sea_list_page is False and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = False
@@ -1105,7 +1162,8 @@ while True:
                 sea_home_page = False
                 sea_list_page = True
                 sea_music_spectrum = False
-            elif (sea_music_list is False and sea_music_film is False and sea_setting_film is False and sea_home_page is False
+            elif (sea_music_list is False and sea_music_film is False and
+                  sea_setting_film is False and sea_home_page is False
                   and sea_list_page is True and sea_music_spectrum is False):
                 sea_music_list = False
                 sea_music_film = False
@@ -1389,15 +1447,6 @@ while True:
     except pygame.error:
         music_list_index += 1
 
-    now_music_time = int(music.get_pos() / 1000)
-    if cal_music_spectrum is True:
-        get_music_spectrum()
-        cal_music_spectrum = False
-    if last_play_second != now_music_time:
-        last_play_second = now_music_time
-        if cal_second_music_spectrum() is False:
-            now_music_spectrum = []
-
     # 获取标签信息
     if music_is_load is True and music_key_is_load is False:
         try:
@@ -1421,6 +1470,16 @@ while True:
 
     if music_lrc_is_load is True and music_lrc_is_read is False:  # 读取歌词
         read_the_lyrics()
+
+    # 计算频谱图
+    now_music_time = int(music.get_pos() / 1000)
+    if cal_music_spectrum is True:
+        get_music_spectrum()
+        cal_music_spectrum = False
+    if last_play_second != now_music_time:
+        last_play_second = now_music_time
+        if cal_second_music_spectrum() is False:
+            now_music_spectrum = []
 
     if sea_music_list is False:
         if lrc_line_index < 0:
@@ -1502,7 +1561,8 @@ while True:
                 line_index = 14 - (highlight_lrc_index - lrc_line_index)
                 if line_index < 0 or line_index > 13:
                     line_index = 100
-            pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+            pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1],
+                             (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
         elif sea_music_list is True and sea_music_film is False:
             if len(music_list) <= 14:
                 line_index = 14 - music_list_index
@@ -1510,7 +1570,8 @@ while True:
                 line_index = 14 - (music_list_index - lrc_line_index)
                 if line_index < 0 or line_index > 13:
                     line_index = 100
-            pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1], (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
+            pygame.draw.rect(screen, pg_wind_color[pg_wind_music_index - 1],
+                             (0, display_size[1] - 133 - 20 * line_index, 636, 19), 0)
     for unit in lyrics:
         unit.draw()
     if len(music_arties.get_attribute().get("msg")) > 70:
@@ -1559,7 +1620,7 @@ while True:
     if now_music_time == 60:
         need_to_save = True
         _new_time_dict = parameter.get_music_time()
-        if _new_time_dict.get(str(music_list[music_list_index])) == None:
+        if _new_time_dict.get(str(music_list[music_list_index])) is None:
             _new_time_dict[str(music_list[music_list_index])] = 1
         else:
             _new_time_dict[str(music_list[music_list_index])] += 1
